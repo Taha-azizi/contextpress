@@ -1,0 +1,15 @@
+# CITATION.cff — cite contextpress in papers and reports
+# See also: https://citation-file-format.github.io/
+cff-version: 1.2.0
+title: contextpress
+message: >-
+  If you use this software in research, please cite it using the metadata below.
+type: software
+authors:
+  - family-names: Azizi
+    given-names: Taha
+repository-code: "https://github.com/Taha-azizi/contextpress"
+license: Apache-2.0
+abstract: >-
+  Lightweight, deterministic context compression for LLM chat and RAG pipelines
+  (filler removal, deduplication, resolution folding, recency summarization, token budgets).

@@ -1,0 +1,62 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "contextpress"
+version = "0.1.0"
+description = "Deterministic context compression for LLM chat, RAG, and agent pipelines"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10"
+keywords = [
+    "llm",
+    "context",
+    "compression",
+    "nlp",
+    "chatbot",
+    "rag",
+    "ai",
+    "conversation",
+    "token-budget",
+    "context-window",
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Text Processing :: Linguistic",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Typing :: Typed",
+    "License :: OSI Approved :: Apache Software License",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "nltk>=3.8",
+    "scikit-learn>=1.3",
+    "sumy>=0.11",
+    "tiktoken>=0.6",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7.0", "pytest-cov>=4.0", "black", "ruff"]
+llm = ["openai>=1.0", "anthropic>=0.18", "ollama>=0.3.0"]
+
+[project.urls]
+Homepage = "https://github.com/Taha-azizi/contextpress"
+Documentation = "https://github.com/Taha-azizi/contextpress#readme"
+Issues = "https://github.com/Taha-azizi/contextpress/issues"
+Changelog = "https://github.com/Taha-azizi/contextpress/blob/main/CHANGELOG.md"
+
+[tool.hatch.build.targets.wheel]
+packages = ["contextpress"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"contextpress/py.typed" = "contextpress/py.typed"
+
+[tool.hatch.build.targets.sdist]
+include = ["/contextpress", "/tests", "/examples", "/README.md", "/LICENSE", "/NOTICE", "/CHANGELOG.md", "/CITATION.cff"]
