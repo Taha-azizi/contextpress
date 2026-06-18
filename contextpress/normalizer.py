@@ -52,8 +52,14 @@ def _blocks_from_openai_style(items: list[dict[str, Any]]) -> list[ContentBlock]
             url = ""
             if "image_url" in item:
                 iu = item["image_url"]
-                url = iu if isinstance(iu, str) else (iu.get("url", "") if isinstance(iu, dict) else "")
-            blocks.append(ContentBlock(type="image", content=url or str(item), metadata=copy.deepcopy(item)))
+                url = (
+                    iu
+                    if isinstance(iu, str)
+                    else (iu.get("url", "") if isinstance(iu, dict) else "")
+                )
+            blocks.append(
+                ContentBlock(type="image", content=url or str(item), metadata=copy.deepcopy(item))
+            )
         else:
             blocks.append(
                 ContentBlock(
@@ -83,12 +89,13 @@ def _blocks_to_openai_style(blocks: list[ContentBlock]) -> list[dict[str, Any]]:
             else:
                 out.append({"type": "image_url", "image_url": {"url": b.content}})
         else:
-            out.append(copy.deepcopy(b.metadata) if b.metadata else {"type": b.type, "content": b.content})
+            out.append(
+                copy.deepcopy(b.metadata) if b.metadata else {"type": b.type, "content": b.content}
+            )
     return out
 
 
 def _get_lc_role_and_content(obj: Any) -> tuple[str, str | list[ContentBlock], dict[str, Any]]:
-    meta: dict[str, Any] = {}
     role = None
     if hasattr(obj, "type") and obj.type is not None:
         role = _LC_TYPE_MAP.get(str(obj.type).lower(), str(obj.type).lower())
@@ -101,7 +108,11 @@ def _get_lc_role_and_content(obj: Any) -> tuple[str, str | list[ContentBlock], d
         blocks = []
         for part in content:
             if isinstance(part, dict) and part.get("type") == "text":
-                blocks.append(ContentBlock(type="text", content=part.get("text", ""), metadata=copy.deepcopy(part)))
+                blocks.append(
+                    ContentBlock(
+                        type="text", content=part.get("text", ""), metadata=copy.deepcopy(part)
+                    )
+                )
             elif isinstance(part, str):
                 blocks.append(ContentBlock(type="text", content=part))
             else:
@@ -176,7 +187,9 @@ def normalize_messages(
         turns = []
         for i, raw in enumerate(messages):
             if not isinstance(raw, dict):
-                warnings.warn(f"contextpress: unknown message shape at index {i}, skipping", stacklevel=2)
+                warnings.warn(
+                    f"contextpress: unknown message shape at index {i}, skipping", stacklevel=2
+                )
                 continue
             d = copy.deepcopy(raw)
             role = str(d.get("role", "user")).lower()
@@ -292,7 +305,9 @@ def apply_text_to_turn(turn: Turn, new_text: str) -> Turn:
             importance=turn.importance,
             resolved=turn.resolved,
             compressed=True,
-            original_content=turn.original_content if turn.original_content is not None else turn.content,
+            original_content=(
+                turn.original_content if turn.original_content is not None else turn.content
+            ),
         )
     new_blocks: list[ContentBlock] = []
     text_assigned = False
@@ -304,7 +319,9 @@ def apply_text_to_turn(turn: Turn, new_text: str) -> Turn:
             new_blocks.append(copy.deepcopy(b))
     if not text_assigned:
         new_blocks.insert(0, ContentBlock(type="text", content=new_text))
-    orig = turn.original_content if turn.original_content is not None else copy.deepcopy(turn.content)
+    orig = (
+        turn.original_content if turn.original_content is not None else copy.deepcopy(turn.content)
+    )
     return Turn(
         role=turn.role,
         content=new_blocks,

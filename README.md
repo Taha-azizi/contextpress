@@ -42,6 +42,14 @@ compressed = cm.compress(messages, token_budget=2000)
 
 No API keys are required for Tier 1. Passing **`token_budget`** turns on the **budget** stage; other stages follow the chosen **compression** preset (`low` / `medium` / `high`).
 
+Pass **`return_stats=True`** to get a `CompressionResult` with `messages` and compression stats (token counts, stages run, turn deltas):
+
+```python
+result = cm.compress(messages, token_budget=2000, return_stats=True)
+print(result.stats.tokens_saved, result.stats.stages_run)
+compressed = result.messages
+```
+
 ### Minimal examples
 
 ```python

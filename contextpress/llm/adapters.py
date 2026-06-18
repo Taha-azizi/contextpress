@@ -3,7 +3,7 @@ from __future__ import annotations
 import warnings
 from typing import Any
 
-
+from contextpress.llm._helpers import DEDUP_SYSTEM_PROMPT, format_numbered_turns, parse_keep_indices
 from contextpress.llm.base import LLMBackend
 
 
@@ -60,7 +60,24 @@ class OpenAIBackend(LLMBackend):
             raise
 
     def deduplicate(self, turns: list[str]) -> list[int]:
-        return list(range(len(turns)))
+        if len(turns) <= 1:
+            return list(range(len(turns)))
+        prompt = format_numbered_turns(turns)
+        try:
+            resp = self.client.chat.completions.create(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": DEDUP_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                max_tokens=128,
+                temperature=0,
+            )
+            content = resp.choices[0].message.content or ""
+            return parse_keep_indices(content, len(turns))
+        except Exception as exc:
+            warnings.warn(f"contextpress OpenAIBackend.deduplicate failed: {exc}", stacklevel=2)
+            return list(range(len(turns)))
 
 
 class AnthropicBackend(LLMBackend):
@@ -98,7 +115,24 @@ class AnthropicBackend(LLMBackend):
             raise
 
     def deduplicate(self, turns: list[str]) -> list[int]:
-        return list(range(len(turns)))
+        if len(turns) <= 1:
+            return list(range(len(turns)))
+        prompt = format_numbered_turns(turns)
+        try:
+            msg = self.client.messages.create(
+                model=self.model,
+                max_tokens=128,
+                system=DEDUP_SYSTEM_PROMPT,
+                messages=[{"role": "user", "content": prompt}],
+            )
+            parts = []
+            for b in msg.content:
+                if hasattr(b, "text"):
+                    parts.append(b.text)
+            return parse_keep_indices("".join(parts), len(turns))
+        except Exception as exc:
+            warnings.warn(f"contextpress AnthropicBackend.deduplicate failed: {exc}", stacklevel=2)
+            return list(range(len(turns)))
 
 
 class OllamaBackend(LLMBackend):
@@ -171,4 +205,19 @@ class OllamaBackend(LLMBackend):
             raise
 
     def deduplicate(self, turns: list[str]) -> list[int]:
-        return list(range(len(turns)))
+        if len(turns) <= 1:
+            return list(range(len(turns)))
+        prompt = format_numbered_turns(turns)
+        try:
+            resp = self._client.chat(
+                model=self.model,
+                messages=[
+                    {"role": "system", "content": DEDUP_SYSTEM_PROMPT},
+                    {"role": "user", "content": prompt},
+                ],
+                options={"num_predict": 128, "temperature": 0},
+            )
+            return parse_keep_indices(_ollama_response_text(resp), len(turns))
+        except Exception as exc:
+            warnings.warn(f"contextpress OllamaBackend.deduplicate failed: {exc}", stacklevel=2)
+            return list(range(len(turns)))

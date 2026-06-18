@@ -48,7 +48,7 @@ def test_just_in_time_preserved():
 
 
 def test_empty_conversation():
-    out = _run()( []).turns
+    out = _run()([]).turns
     assert out == []
 
 

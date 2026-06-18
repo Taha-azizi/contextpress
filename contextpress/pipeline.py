@@ -11,8 +11,10 @@ CONTEXTPRESS BEHAVIOR CONTRACT
 8. Tier 1 (no LLM) behavior is ALWAYS deterministic. Tests must pass consistently.
 9. LLM backend failures fall back to Tier 1 and emit a warning.
 10. token_budget=None means run all stages but skip budget enforcement.
-11. Compression presets (low/medium/high) select non-budget stages; budget runs when token_budget is set unless opted out.
-12. Tier 2 (when enabled) may dedupe non-system turns, then replace them with one assistant summary; system turns stay unchanged.
+11. Compression presets (low/medium/high) select non-budget stages; budget runs when
+    token_budget is set unless opted out.
+12. Tier 2 (when enabled) may dedupe non-system turns, then replace them with one assistant
+    summary; system turns stay unchanged.
 """
 
 from __future__ import annotations
@@ -25,6 +27,7 @@ from contextpress.compression import STAGE_ORDER
 from contextpress.models import Conversation, Turn
 from contextpress.normalizer import extract_text_for_processing
 from contextpress.profiles import Profile, StageConfig
+from contextpress.stats import CompressionStats, count_conversation_tokens
 from contextpress.strategies.base import BaseStrategy
 from contextpress.strategies.budget import BudgetStrategy
 from contextpress.strategies.filler import FillerStrategy
@@ -49,9 +52,9 @@ def clone_turn(t: Turn) -> Turn:
         importance=t.importance,
         resolved=t.resolved,
         compressed=t.compressed,
-        original_content=copy.deepcopy(t.original_content)
-        if t.original_content is not None
-        else None,
+        original_content=(
+            copy.deepcopy(t.original_content) if t.original_content is not None else None
+        ),
     )
 
 
@@ -85,7 +88,17 @@ class Pipeline:
         self.llm_min_input_chars = max(0, int(llm_min_input_chars))
         self.llm_max_summary_tokens = max(64, int(llm_max_summary_tokens))
 
-    def run(self, conversation: Conversation) -> Conversation:
+    def run(
+        self,
+        conversation: Conversation,
+        stats: CompressionStats | None = None,
+    ) -> Conversation:
+        if stats is not None:
+            stats.turns_before = len(conversation.turns)
+            stats.tokens_before = count_conversation_tokens(conversation, self.model)
+            stats.context_type = conversation.type
+            stats.token_budget = self.token_budget
+
         result = clone_conversation(conversation)
         for stage_name in self.STAGE_ORDER:
             if stage_name == "budget" and self.token_budget is None:
@@ -93,11 +106,21 @@ class Pipeline:
             stage_config = getattr(self.profile, stage_name)
             if not stage_config.enabled:
                 continue
+            before_turns = len(result.turns)
             strategy = self._build_strategy(stage_name, stage_config)
             result = strategy.process(result)
+            if stats is not None:
+                stats.stages_run.append(stage_name)
+                delta = len(result.turns) - before_turns
+                if delta != 0:
+                    stats.turn_delta_by_stage[stage_name] = delta
 
         if self.llm_backend is not None:
-            result = self._run_llm_tier(result)
+            result = self._run_llm_tier(result, stats=stats)
+
+        if stats is not None:
+            stats.turns_after = len(result.turns)
+            stats.tokens_after = count_conversation_tokens(result, self.model)
 
         return result
 
@@ -125,7 +148,11 @@ class Pipeline:
             )
         raise ValueError(f"unknown stage {name!r}")
 
-    def _run_llm_tier(self, conversation: Conversation) -> Conversation:
+    def _run_llm_tier(
+        self,
+        conversation: Conversation,
+        stats: CompressionStats | None = None,
+    ) -> Conversation:
         if self.llm_backend is None:
             return conversation
 
@@ -135,19 +162,29 @@ class Pipeline:
         if not ns_turns:
             return conversation
 
+        if stats is not None:
+            stats.llm_dedup_turns_before = len(ns_turns)
+
         texts = [extract_text_for_processing(t) for t in ns_turns]
         try:
             keep_idx = self.llm_backend.deduplicate(texts)
         except Exception:
             keep_idx = list(range(len(ns_turns)))
         valid = sorted(
-            {i for i in keep_idx if type(i) is int and not isinstance(i, bool) and 0 <= i < len(ns_turns)}
+            {
+                i
+                for i in keep_idx
+                if type(i) is int and not isinstance(i, bool) and 0 <= i < len(ns_turns)
+            }
         )
         if not valid:
             valid = list(range(len(ns_turns)))
         if len(valid) < len(ns_turns):
             ns_turns = [ns_turns[i] for i in valid]
             texts = [texts[i] for i in valid]
+
+        if stats is not None:
+            stats.llm_dedup_turns_after = len(ns_turns)
 
         lines = [f"{t.role}: {txt}" for t, txt in zip(ns_turns, texts, strict=True)]
         combined = "\n\n".join(lines)
@@ -166,6 +203,9 @@ class Pipeline:
         summary = (summary or "").strip()
         if not summary:
             return conversation
+
+        if stats is not None:
+            stats.llm_tier_applied = True
 
         new_turns: list[Turn] = list(system_turns)
         new_turns.append(

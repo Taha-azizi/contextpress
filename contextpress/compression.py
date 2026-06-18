@@ -98,4 +98,4 @@ def apply_stage_selection(
         if disable and "budget" in disable:
             profile.budget.enabled = False
         else:
-            profile.budget.enabled = getattr(base_profile, "budget").enabled
+            profile.budget.enabled = base_profile.budget.enabled

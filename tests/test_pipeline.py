@@ -40,7 +40,10 @@ def test_disable_resolution():
 
 def test_system_survives():
     cm = ContextManager(type="chat")
-    messages = [{"role": "system", "content": "You are helpful."}, {"role": "user", "content": "hi"}]
+    messages = [
+        {"role": "system", "content": "You are helpful."},
+        {"role": "user", "content": "hi"},
+    ]
     r = cm.compress(messages, token_budget=500)
     assert r[0]["role"] == "system"
     assert r[0]["content"] == "You are helpful."
@@ -216,11 +219,12 @@ def test_anthropic_backend_summarize_warns_on_error():
             b.summarize("x", 10)
 
 
-def test_adapter_deduplicate_defaults():
+def test_adapter_deduplicate_single_turn():
     client = MagicMock()
-    assert OpenAIBackend(client=client).deduplicate(["a", "b"]) == [0, 1]
+    assert OpenAIBackend(client=client).deduplicate(["a"]) == [0]
     assert AnthropicBackend(client=client).deduplicate(["a"]) == [0]
-    assert OllamaBackend(client=client, model="x").deduplicate(["a", "b"]) == [0, 1]
+    assert OllamaBackend(client=client, model="x").deduplicate(["a"]) == [0]
+    client.chat.completions.create.assert_not_called()
 
 
 def test_ollama_backend_summarize_dict_response():

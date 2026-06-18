@@ -32,7 +32,9 @@ class Turn:
     importance: float = 1.0  # set by pipeline stages, 0.0–1.0
     resolved: bool = False  # True when flagged by resolution detector
     compressed: bool = False  # True if content was modified by pipeline
-    original_content: str | list[ContentBlock] | None = None  # preserves original before compression
+    original_content: str | list[ContentBlock] | None = (
+        None  # preserves original before compression
+    )
 
 
 @dataclass

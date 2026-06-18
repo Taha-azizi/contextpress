@@ -8,6 +8,7 @@ from contextpress.compression import apply_stage_selection, normalize_compressio
 from contextpress.normalizer import denormalize_output, normalize_messages
 from contextpress.pipeline import Pipeline
 from contextpress.profiles import PROFILES, Profile, StageConfig
+from contextpress.stats import CompressionResult, CompressionStats
 
 if TYPE_CHECKING:
     from contextpress.llm.base import LLMBackend
@@ -57,23 +58,27 @@ class ContextManager:
         compression: str | None = None,
         stages: list[str] | None = None,
         disable: list[str] | None = None,
-    ) -> Any:
+        return_stats: bool = False,
+    ) -> Any | CompressionResult:
         """Run the pipeline; return value matches input shape (dict list, tuples, strings, etc.).
 
         ``token_budget`` must be a positive int or None. Unknown keys in ``disable`` are ignored.
+        With ``return_stats=True``, returns a ``CompressionResult`` with ``messages`` and ``stats``.
         """
         _validate_token_budget(token_budget)
+        level = compression if compression is not None else self._compression
         profile = copy.deepcopy(self._profile)
         apply_stage_selection(
             profile,
             base_profile=self._profile,
-            compression=compression if compression is not None else self._compression,
+            compression=level,
             stages=stages,
             disable=disable,
             token_budget=token_budget,
         )
 
         conv, ctx = normalize_messages(messages, context_type=self._type)
+        stats = CompressionStats(compression_level=level) if return_stats else None
         pipeline = Pipeline(
             profile,
             token_budget=token_budget,
@@ -82,15 +87,19 @@ class ContextManager:
             llm_min_input_chars=self.llm_min_input_chars,
             llm_max_summary_tokens=self.llm_max_summary_tokens,
         )
-        out = pipeline.run(conv)
-        return denormalize_output(out, ctx)
+        out = pipeline.run(conv, stats=stats)
+        messages_out = denormalize_output(out, ctx)
+        if return_stats:
+            assert stats is not None
+            return CompressionResult(messages=messages_out, stats=stats)
+        return messages_out
 
     def set_compression(self, compression: str) -> None:
         """Change the default preset for subsequent ``compress()`` calls (low / medium / high)."""
         self._compression = normalize_compression_level(compression)
 
     def configure(self, stage: str, **kwargs: Any) -> None:
-        """Patch ``StageConfig`` fields on the live profile (e.g. ``aggressiveness``, ``enabled``)."""
+        """Patch ``StageConfig`` fields on the live profile (e.g. aggressiveness, enabled)."""
         if not hasattr(self._profile, stage):
             raise ValueError(f"unknown stage {stage!r}")
         sc: StageConfig = getattr(self._profile, stage)

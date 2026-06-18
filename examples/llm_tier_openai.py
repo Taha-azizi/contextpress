@@ -31,7 +31,7 @@ def main() -> None:
     messages = [
         {"role": "system", "content": "You are a concise assistant."},
         {"role": "user", "content": "What is Python? " + ("Explain briefly. " * 200)},
-        {"role": "assistant", "content": "Python is a programming language. " *150},
+        {"role": "assistant", "content": "Python is a programming language. " * 150},
         {"role": "user", "content": "And numpy? " * 80},
     ]
 

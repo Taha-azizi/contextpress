@@ -38,7 +38,9 @@ class RepetitionStrategy(BaseStrategy):
         indices_to_drop: set[int] = set()
 
         # Positions of non-system turns with their global index
-        nst: list[tuple[int, Turn]] = [(i, t) for i, t in enumerate(turns) if not self._is_protected(t)]
+        nst: list[tuple[int, Turn]] = [
+            (i, t) for i, t in enumerate(turns) if not self._is_protected(t)
+        ]
 
         def run_group(group: list[tuple[int, Turn]]) -> None:
             if len(group) < 2:

@@ -114,14 +114,16 @@ class RecencyStrategy(BaseStrategy):
             else:
                 processed_by_ns.append(copy.deepcopy(t))
 
-        by_idx = dict(zip(ns_indices, processed_by_ns))
+        by_idx = dict(zip(ns_indices, processed_by_ns, strict=True))
         out: list[Turn] = []
         for i, t in enumerate(conversation.turns):
             if i in by_idx:
                 out.append(by_idx[i])
             else:
                 out.append(copy.deepcopy(t))
-        return Conversation(turns=out, type=conversation.type, metadata=copy.deepcopy(conversation.metadata))
+        return Conversation(
+            turns=out, type=conversation.type, metadata=copy.deepcopy(conversation.metadata)
+        )
 
     def _relevance_score(self, query: str, chunk: str) -> float:
         if not query.strip() or not chunk.strip():

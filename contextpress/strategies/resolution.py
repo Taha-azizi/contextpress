@@ -166,14 +166,15 @@ class ResolutionStrategy(BaseStrategy):
         res_text = extract_text_for_processing(turns[res_idx])
 
         if self.conv_type == "chat":
-            # Include one trailing turn so an assistant acknowledgement after a user's resolution still counts
+            # Include one trailing turn so an assistant ack after a user's resolution still counts.
             scan_end = min(len(turns) - 1, res_idx + 1)
             has_user = any(
                 turns[i].role == "user" and _has_signal_any(extract_text_for_processing(turns[i]))
                 for i in range(thread_start, scan_end + 1)
             )
             has_asst = any(
-                turns[i].role == "assistant" and _has_signal_any(extract_text_for_processing(turns[i]))
+                turns[i].role == "assistant"
+                and _has_signal_any(extract_text_for_processing(turns[i]))
                 for i in range(thread_start, scan_end + 1)
             )
             if not (has_user and has_asst):

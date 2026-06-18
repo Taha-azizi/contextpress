@@ -94,7 +94,7 @@ def _build_filler_pattern() -> re.Pattern[str]:
 
 _FILLER_RE = _build_filler_pattern()
 
-# "actually" at start of "actually, no" — keep if followed by comma and negation? Spec: "actually, no"
+# Keep "actually" when it starts a phrase like "actually, no" (per spec).
 _ACTUALLY_NO = re.compile(r"^\s*actually\s*,\s*no\b", re.IGNORECASE)
 
 

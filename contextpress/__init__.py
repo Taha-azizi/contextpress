@@ -4,15 +4,22 @@ from typing import Any
 
 from contextpress._bootstrap import bootstrap_nltk
 from contextpress.models import ContentBlock, Conversation, Turn
+from contextpress.stats import CompressionResult, CompressionStats
 
 bootstrap_nltk()
 
-__all__ = ["ContextManager", "Turn", "Conversation", "ContentBlock"]
-__version__ = "0.1.0"
+__all__ = [
+    "ContextManager",
+    "Turn",
+    "Conversation",
+    "ContentBlock",
+    "CompressionResult",
+    "CompressionStats",
+]
+__version__ = "0.2.0"
 
 
 def __getattr__(name: str) -> Any:
-    # Lazy import: ContextManager -> core -> pipeline -> strategies (sumy, etc.)
     if name == "ContextManager":
         from contextpress.core import ContextManager
 
