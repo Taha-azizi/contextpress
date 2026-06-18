@@ -8,9 +8,22 @@ Thank you for your interest in contributing. This project is maintained by [Taha
 - Search [existing issues](https://github.com/Taha-azizi/contextpress/issues) before opening a duplicate.
 - Expect a **2–4 week** review cycle for pull requests.
 
+## Branches
+
+| Branch | Purpose |
+|--------|---------|
+| **`dev`** | Active development — **branch from here, open PRs here** |
+| **`main`** | Stable releases (merged from `dev` at release time) |
+
+After cloning:
+
+```bash
+git checkout dev
+```
+
 ## How to contribute
 
-1. **Fork** the repository and create a branch from `main`.
+1. **Fork** the repository and create a feature branch from **`dev`** (not `main`).
 2. **Set up** a local environment:
    ```bash
    pip install -e ".[dev]"
@@ -18,7 +31,7 @@ Thank you for your interest in contributing. This project is maintained by [Taha
    ```
 3. **Make focused changes** — one logical change per PR when possible.
 4. **Add or update tests** for behavior you change. Tier 1 tests must stay deterministic (no live LLM calls in `tests/`).
-5. **Open a pull request** with:
+5. **Open a pull request** targeting **`dev`** with:
    - A short summary of *why* the change is needed
    - How you tested it (`pytest tests -q`, etc.)
    - A note if you changed public API (update `CHANGELOG.md`)

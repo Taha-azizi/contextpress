@@ -1,5 +1,12 @@
 # Notes for agents and contributors
 
+## Branches
+
+- **`dev`** — default working branch; all feature work and fixes land here first.
+- **`main`** — release branch; merge from `dev` when cutting a PyPI release.
+
+Always `git checkout dev` before making changes in this repo.
+
 ## Where things live
 
 | Area | Path |
