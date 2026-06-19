@@ -1,4 +1,4 @@
-from datetime import UTC, datetime
+from datetime import datetime, timezone
 
 from contextpress.models import ContentBlock, Conversation, Turn
 
@@ -22,5 +22,5 @@ def test_non_system_turns():
 
 
 def test_timestamp_optional():
-    t = Turn(role="user", content="x", timestamp=datetime.now(UTC))
+    t = Turn(role="user", content="x", timestamp=datetime.now(timezone.utc))
     assert t.timestamp is not None
