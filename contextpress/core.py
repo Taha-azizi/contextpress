@@ -6,12 +6,16 @@ from typing import TYPE_CHECKING, Any
 
 from contextpress.compression import apply_stage_selection, normalize_compression_level
 from contextpress.normalizer import denormalize_output, normalize_messages
-from contextpress.pipeline import Pipeline
+from contextpress.pipeline import VALID_LLM_MODES, Pipeline
 from contextpress.profiles import PROFILES, Profile, StageConfig
-from contextpress.stats import CompressionResult, CompressionStats
+from contextpress.registry import register_stage as _register_stage
+from contextpress.stats import CompressionResult, CompressionStats, count_conversation_tokens
 
 if TYPE_CHECKING:
+    from collections.abc import Callable
+
     from contextpress.llm.base import LLMBackend
+    from contextpress.strategies.base import BaseStrategy
 
 
 def _validate_token_budget(token_budget: int | None) -> None:
@@ -39,9 +43,14 @@ class ContextManager:
         compression: str = "medium",
         llm_min_input_chars: int = 1500,
         llm_max_summary_tokens: int = 2048,
+        llm_mode: str = "replace_all",
     ):
         if type not in PROFILES:
             raise ValueError(f"unknown context type {type!r}")
+        if llm_mode not in VALID_LLM_MODES:
+            raise ValueError(
+                f"unknown llm_mode {llm_mode!r}; use one of: {sorted(VALID_LLM_MODES)}"
+            )
         self._type = type
         self._profile: Profile = copy.deepcopy(PROFILES[type])
         self._compression: str = normalize_compression_level(compression)
@@ -49,6 +58,25 @@ class ContextManager:
         self.llm_backend = llm_backend
         self.llm_min_input_chars = int(llm_min_input_chars)
         self.llm_max_summary_tokens = int(llm_max_summary_tokens)
+        self.llm_mode = llm_mode
+        self._custom_stages: dict[str, StageConfig] = {}
+
+    def estimate_tokens(self, messages: Any, *, model: str | None = None) -> int:
+        """Count tokens for ``messages`` using the same encoding as the budget stage."""
+        conv, _ = normalize_messages(messages, context_type=self._type)
+        return count_conversation_tokens(conv, model if model is not None else self.model)
+
+    def register_stage(
+        self,
+        name: str,
+        factory: Callable[..., BaseStrategy],
+        *,
+        before: str = "budget",
+        aggressiveness: float = 0.5,
+    ) -> None:
+        """Register a custom pipeline stage (see ``contextpress.registry``)."""
+        _register_stage(name, factory, before=before)
+        self._custom_stages[name] = StageConfig(enabled=False, aggressiveness=aggressiveness)
 
     def compress(
         self,
@@ -68,6 +96,7 @@ class ContextManager:
         _validate_token_budget(token_budget)
         level = compression if compression is not None else self._compression
         profile = copy.deepcopy(self._profile)
+        custom_stages = copy.deepcopy(self._custom_stages)
         apply_stage_selection(
             profile,
             base_profile=self._profile,
@@ -75,6 +104,7 @@ class ContextManager:
             stages=stages,
             disable=disable,
             token_budget=token_budget,
+            custom_stages=custom_stages,
         )
 
         conv, ctx = normalize_messages(messages, context_type=self._type)
@@ -86,6 +116,8 @@ class ContextManager:
             llm_backend=self.llm_backend,
             llm_min_input_chars=self.llm_min_input_chars,
             llm_max_summary_tokens=self.llm_max_summary_tokens,
+            llm_mode=self.llm_mode,
+            custom_stages=custom_stages,
         )
         out = pipeline.run(conv, stats=stats)
         messages_out = denormalize_output(out, ctx)
@@ -100,9 +132,12 @@ class ContextManager:
 
     def configure(self, stage: str, **kwargs: Any) -> None:
         """Patch ``StageConfig`` fields on the live profile (e.g. aggressiveness, enabled)."""
-        if not hasattr(self._profile, stage):
+        if stage in self._custom_stages:
+            sc = self._custom_stages[stage]
+        elif hasattr(self._profile, stage):
+            sc = getattr(self._profile, stage)
+        else:
             raise ValueError(f"unknown stage {stage!r}")
-        sc: StageConfig = getattr(self._profile, stage)
         for k, v in kwargs.items():
             if hasattr(sc, k):
                 setattr(sc, k, v)

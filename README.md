@@ -50,6 +50,27 @@ print(result.stats.tokens_saved, result.stats.stages_run)
 compressed = result.messages
 ```
 
+Check token count **before** compressing:
+
+```python
+before = cm.estimate_tokens(messages)
+```
+
+### Custom stages (0.3+)
+
+Register a `BaseStrategy` and include it in `stages=`:
+
+```python
+from contextpress.strategies.base import BaseStrategy
+
+class MyStage(BaseStrategy):
+    def process(self, conversation):
+        ...
+
+cm.register_stage("my_stage", MyStage)
+out = cm.compress(messages, stages=["filler", "my_stage", "budget"], token_budget=500)
+```
+
 ### Minimal examples
 
 ```python
@@ -165,7 +186,9 @@ After **Tier 1** finishes, you can attach an **`LLMBackend`** for semantic compr
 2. If the combined transcript is long enough (default **1500** characters; set **`llm_min_input_chars=0`** to always run), calls **`summarize(transcript, max_tokens)`**.
 3. **System turns are unchanged** in order and content. **All other turns are replaced** by a **single assistant** message whose content is the LLM summary (metadata includes `source: contextpress_llm_tier`). If the LLM call fails, the Tier 1 conversation is returned and a **warning** is emitted.
 
-Optional constructor knobs: **`llm_min_input_chars`**, **`llm_max_summary_tokens`**.
+Optional constructor knobs: **`llm_min_input_chars`**, **`llm_max_summary_tokens`**, **`llm_mode`**.
+
+**`llm_mode`** (0.3+): `replace_all` (default — dedupe then one summary turn), `dedupe_only` (dedupe, keep turns), `summarize_only` (append summary, keep turns).
 
 **Install SDKs** (not bundled): `pip install openai`, `anthropic`, and/or **`ollama`** (for local Ollama), or `pip install "contextpress[llm]"` from this repo’s `pyproject.toml` to pull all optional LLM clients.
 

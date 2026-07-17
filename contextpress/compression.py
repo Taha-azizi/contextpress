@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from contextpress.profiles import Profile
+from contextpress.profiles import Profile, StageConfig
 
 STAGE_ORDER: tuple[str, ...] = (
     "filler",
@@ -13,6 +13,14 @@ STAGE_ORDER: tuple[str, ...] = (
 )
 
 VALID_STAGES = frozenset(STAGE_ORDER)
+
+
+def known_stages() -> frozenset[str]:
+    """Built-in plus registered custom stage names."""
+    from contextpress.registry import registered_stage_names
+
+    return VALID_STAGES | registered_stage_names()
+
 
 _NON_BUDGET_ORDER: tuple[str, ...] = tuple(s for s in STAGE_ORDER if s != "budget")
 
@@ -38,6 +46,7 @@ __all__ = [
     "STAGE_ORDER",
     "VALID_STAGES",
     "apply_stage_selection",
+    "known_stages",
     "normalize_compression_level",
 ]
 
@@ -60,6 +69,7 @@ def apply_stage_selection(
     stages: list[str] | None,
     disable: list[str] | None,
     token_budget: int | None,
+    custom_stages: dict[str, StageConfig] | None = None,
 ) -> None:
     """
     Mutates ``profile`` in place: sets each stage's ``enabled`` from explicit
@@ -70,12 +80,15 @@ def apply_stage_selection(
     if stages is not None:
         if not stages:
             raise ValueError("stages= must list at least one stage name when provided")
-        unknown = [s for s in stages if s not in VALID_STAGES]
+        unknown = [s for s in stages if s not in known_stages()]
         if unknown:
-            raise ValueError(f"unknown stage name(s): {unknown}; valid: {sorted(VALID_STAGES)}")
+            raise ValueError(f"unknown stage name(s): {unknown}; valid: {sorted(known_stages())}")
         want = frozenset(stages)
         for name in _NON_BUDGET_ORDER:
             getattr(profile, name).enabled = name in want
+        if custom_stages:
+            for name, cfg in custom_stages.items():
+                cfg.enabled = name in want
     else:
         level = normalize_compression_level(compression)
         preset = _COMPRESSION_PRESETS[level]
@@ -85,6 +98,9 @@ def apply_stage_selection(
 
     if disable:
         for name in disable:
+            if custom_stages and name in custom_stages:
+                custom_stages[name].enabled = False
+                continue
             if not hasattr(profile, name):
                 continue
             getattr(profile, name).enabled = False

@@ -27,6 +27,11 @@ from contextpress.compression import STAGE_ORDER
 from contextpress.models import Conversation, Turn
 from contextpress.normalizer import extract_text_for_processing
 from contextpress.profiles import Profile, StageConfig
+from contextpress.registry import (
+    build_custom_strategy,
+    effective_stage_order,
+    registered_stage_names,
+)
 from contextpress.stats import CompressionStats, count_conversation_tokens
 from contextpress.strategies.base import BaseStrategy
 from contextpress.strategies.budget import BudgetStrategy
@@ -37,6 +42,8 @@ from contextpress.strategies.resolution import ResolutionStrategy
 
 if TYPE_CHECKING:
     from contextpress.llm.base import LLMBackend
+
+VALID_LLM_MODES = frozenset({"replace_all", "dedupe_only", "summarize_only"})
 
 
 def clone_turn(t: Turn) -> Turn:
@@ -80,6 +87,8 @@ class Pipeline:
         *,
         llm_min_input_chars: int = 1500,
         llm_max_summary_tokens: int = 2048,
+        llm_mode: str = "replace_all",
+        custom_stages: dict[str, StageConfig] | None = None,
     ):
         self.profile = profile
         self.token_budget = token_budget
@@ -87,6 +96,12 @@ class Pipeline:
         self.llm_backend = llm_backend  # None = Tier 1 only
         self.llm_min_input_chars = max(0, int(llm_min_input_chars))
         self.llm_max_summary_tokens = max(64, int(llm_max_summary_tokens))
+        if llm_mode not in VALID_LLM_MODES:
+            raise ValueError(
+                f"unknown llm_mode {llm_mode!r}; use one of: {sorted(VALID_LLM_MODES)}"
+            )
+        self.llm_mode = llm_mode
+        self.custom_stages = custom_stages or {}
 
     def run(
         self,
@@ -100,11 +115,12 @@ class Pipeline:
             stats.token_budget = self.token_budget
 
         result = clone_conversation(conversation)
-        for stage_name in self.STAGE_ORDER:
+        stage_order = effective_stage_order()
+        for stage_name in stage_order:
             if stage_name == "budget" and self.token_budget is None:
                 continue
-            stage_config = getattr(self.profile, stage_name)
-            if not stage_config.enabled:
+            stage_config = self._stage_config(stage_name)
+            if stage_config is None or not stage_config.enabled:
                 continue
             before_turns = len(result.turns)
             strategy = self._build_strategy(stage_name, stage_config)
@@ -124,12 +140,26 @@ class Pipeline:
 
         return result
 
+    def _stage_config(self, name: str) -> StageConfig | None:
+        if name in self.custom_stages:
+            return self.custom_stages[name]
+        if hasattr(self.profile, name):
+            return getattr(self.profile, name)
+        return None
+
     def _build_strategy(self, name: str, config: StageConfig) -> BaseStrategy:
         kwargs: dict[str, Any] = {
             "aggressiveness": config.aggressiveness,
             "conv_type": self.profile.name,
             "role_aware": self.profile.role_aware,
         }
+        if name in registered_stage_names():
+            return build_custom_strategy(
+                name,
+                config,
+                conv_type=self.profile.name,
+                role_aware=self.profile.role_aware,
+            )
         if name == "filler":
             return FillerStrategy(**kwargs)
         if name == "repetition":
@@ -166,25 +196,36 @@ class Pipeline:
             stats.llm_dedup_turns_before = len(ns_turns)
 
         texts = [extract_text_for_processing(t) for t in ns_turns]
-        try:
-            keep_idx = self.llm_backend.deduplicate(texts)
-        except Exception:
-            keep_idx = list(range(len(ns_turns)))
-        valid = sorted(
-            {
-                i
-                for i in keep_idx
-                if type(i) is int and not isinstance(i, bool) and 0 <= i < len(ns_turns)
-            }
-        )
-        if not valid:
-            valid = list(range(len(ns_turns)))
-        if len(valid) < len(ns_turns):
-            ns_turns = [ns_turns[i] for i in valid]
-            texts = [texts[i] for i in valid]
+        if self.llm_mode in ("replace_all", "dedupe_only"):
+            try:
+                keep_idx = self.llm_backend.deduplicate(texts)
+            except Exception:
+                keep_idx = list(range(len(ns_turns)))
+            valid = sorted(
+                {
+                    i
+                    for i in keep_idx
+                    if type(i) is int and not isinstance(i, bool) and 0 <= i < len(ns_turns)
+                }
+            )
+            if not valid:
+                valid = list(range(len(ns_turns)))
+            if len(valid) < len(ns_turns):
+                ns_turns = [ns_turns[i] for i in valid]
+                texts = [texts[i] for i in valid]
 
-        if stats is not None:
-            stats.llm_dedup_turns_after = len(ns_turns)
+            if stats is not None:
+                stats.llm_dedup_turns_after = len(ns_turns)
+
+            if self.llm_mode == "dedupe_only":
+                new_turns = list(system_turns) + [clone_turn(t) for t in ns_turns]
+                if stats is not None:
+                    stats.llm_tier_applied = True
+                return Conversation(
+                    turns=new_turns,
+                    type=conversation.type,
+                    metadata=copy.deepcopy(conversation.metadata),
+                )
 
         lines = [f"{t.role}: {txt}" for t, txt in zip(ns_turns, texts, strict=True)]
         combined = "\n\n".join(lines)
@@ -206,6 +247,22 @@ class Pipeline:
 
         if stats is not None:
             stats.llm_tier_applied = True
+
+        if self.llm_mode == "summarize_only":
+            new_turns = list(system_turns) + [clone_turn(t) for t in ns_turns]
+            new_turns.append(
+                Turn(
+                    role="assistant",
+                    content=summary,
+                    metadata={"source": "contextpress_llm_tier", "mode": "summarize_only"},
+                    compressed=True,
+                )
+            )
+            return Conversation(
+                turns=new_turns,
+                type=conversation.type,
+                metadata=copy.deepcopy(conversation.metadata),
+            )
 
         new_turns: list[Turn] = list(system_turns)
         new_turns.append(

@@ -4,6 +4,13 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-14
+
+- **`estimate_tokens(messages)`** — count tokens before compressing (same tiktoken encoding as budget).
+- **Stage registry** — `ContextManager.register_stage()` for custom `BaseStrategy` stages in `stages=[...]`.
+- **Tier 2 `llm_mode`** — `replace_all` (default), `dedupe_only`, or `summarize_only`.
+- Example: `examples/estimate_and_stats.py`.
+
 ## [0.2.0] - 2026-05-24
 
 - **`return_stats=True`** on `ContextManager.compress()` returns a `CompressionResult` with token/turn counts, stages run, and per-stage turn deltas.
