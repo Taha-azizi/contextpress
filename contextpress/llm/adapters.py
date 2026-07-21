@@ -221,3 +221,44 @@ class OllamaBackend(LLMBackend):
         except Exception as exc:
             warnings.warn(f"contextpress OllamaBackend.deduplicate failed: {exc}", stacklevel=2)
             return list(range(len(turns)))
+
+
+class OpenAICompatibleBackend(OpenAIBackend):
+    """
+    Adapter for **OpenAI-compatible HTTP APIs** (vLLM, LM Studio, LocalAI, etc.).
+
+    Requires: ``pip install openai``
+
+    Usage::
+
+        from contextpress.llm.adapters import OpenAICompatibleBackend
+
+        backend = OpenAICompatibleBackend(
+            base_url="http://localhost:8000/v1",
+            model="mistral",
+        )
+        cm = ContextManager(type="chat", llm_backend=backend)
+    """
+
+    def __init__(
+        self,
+        base_url: str,
+        model: str,
+        *,
+        api_key: str = "not-needed",
+        client: Any | None = None,
+    ):
+        if client is not None:
+            super().__init__(client=client, model=model)
+            return
+        try:
+            from openai import OpenAI
+        except ImportError as exc:
+            raise ImportError(
+                "OpenAICompatibleBackend requires the 'openai' package. "
+                "Install with: pip install openai"
+            ) from exc
+        super().__init__(
+            client=OpenAI(base_url=base_url, api_key=api_key),
+            model=model,
+        )

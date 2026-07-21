@@ -4,6 +4,14 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-20
+
+- **`preview()` / `dry_run=True`** — simulate compression and get stats without changing messages (Tier 1 only; no LLM calls).
+- **`fits_budget()`** — check whether messages would fit a token budget after compression.
+- **`CompressionStats.warnings_emitted`** — pipeline warnings collected during a run.
+- **`OpenAICompatibleBackend`** — vLLM, LM Studio, LocalAI, and other OpenAI-compatible servers.
+- Example: `examples/dry_run_preview.py`.
+
 ## [0.3.0] - 2026-07-14
 
 - **`estimate_tokens(messages)`** — count tokens before compressing (same tiktoken encoding as budget).

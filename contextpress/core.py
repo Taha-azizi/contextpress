@@ -6,10 +6,11 @@ from typing import TYPE_CHECKING, Any
 
 from contextpress.compression import apply_stage_selection, normalize_compression_level
 from contextpress.normalizer import denormalize_output, normalize_messages
-from contextpress.pipeline import VALID_LLM_MODES, Pipeline
+from contextpress.pipeline import VALID_LLM_MODES, Pipeline, clone_conversation
 from contextpress.profiles import PROFILES, Profile, StageConfig
 from contextpress.registry import register_stage as _register_stage
 from contextpress.stats import CompressionResult, CompressionStats, count_conversation_tokens
+from contextpress.warnings_capture import capture_warnings
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -66,6 +67,45 @@ class ContextManager:
         conv, _ = normalize_messages(messages, context_type=self._type)
         return count_conversation_tokens(conv, model if model is not None else self.model)
 
+    def fits_budget(
+        self,
+        messages: Any,
+        token_budget: int,
+        *,
+        compression: str | None = None,
+        stages: list[str] | None = None,
+        disable: list[str] | None = None,
+    ) -> bool:
+        """Return True if ``messages`` would fit ``token_budget`` after compression (dry run)."""
+        preview = self.preview(
+            messages,
+            token_budget=token_budget,
+            compression=compression,
+            stages=stages,
+            disable=disable,
+        )
+        return preview.stats.tokens_after <= token_budget
+
+    def preview(
+        self,
+        messages: Any,
+        token_budget: int | None = None,
+        *,
+        compression: str | None = None,
+        stages: list[str] | None = None,
+        disable: list[str] | None = None,
+    ) -> CompressionResult:
+        """Dry-run compression: stats only, original ``messages`` returned unchanged."""
+        return self.compress(
+            messages,
+            token_budget=token_budget,
+            compression=compression,
+            stages=stages,
+            disable=disable,
+            return_stats=True,
+            dry_run=True,
+        )
+
     def register_stage(
         self,
         name: str,
@@ -87,12 +127,16 @@ class ContextManager:
         stages: list[str] | None = None,
         disable: list[str] | None = None,
         return_stats: bool = False,
+        dry_run: bool = False,
     ) -> Any | CompressionResult:
         """Run the pipeline; return value matches input shape (dict list, tuples, strings, etc.).
 
         ``token_budget`` must be a positive int or None. Unknown keys in ``disable`` are ignored.
         With ``return_stats=True``, returns a ``CompressionResult`` with ``messages`` and ``stats``.
+        With ``dry_run=True``, runs Tier 1 only (no LLM calls) and returns the original messages.
         """
+        if dry_run:
+            return_stats = True
         _validate_token_budget(token_budget)
         level = compression if compression is not None else self._compression
         profile = copy.deepcopy(self._profile)
@@ -119,8 +163,14 @@ class ContextManager:
             llm_mode=self.llm_mode,
             custom_stages=custom_stages,
         )
-        out = pipeline.run(conv, stats=stats)
-        messages_out = denormalize_output(out, ctx)
+        with capture_warnings() as captured:
+            out = pipeline.run(conv, stats=stats, dry_run=dry_run)
+        if stats is not None:
+            stats.warnings_emitted = captured
+        if dry_run:
+            messages_out = denormalize_output(clone_conversation(conv), ctx)
+        else:
+            messages_out = denormalize_output(out, ctx)
         if return_stats:
             assert stats is not None
             return CompressionResult(messages=messages_out, stats=stats)

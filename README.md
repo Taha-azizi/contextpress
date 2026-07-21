@@ -56,6 +56,17 @@ Check token count **before** compressing:
 before = cm.estimate_tokens(messages)
 ```
 
+**Preview without changing messages** (0.4+):
+
+```python
+preview = cm.preview(messages, token_budget=500)
+print(preview.stats.tokens_saved, preview.stats.warnings_emitted)
+assert preview.messages == messages  # unchanged
+
+if cm.fits_budget(messages, 4000):
+    ...
+```
+
 ### Custom stages (0.3+)
 
 Register a `BaseStrategy` and include it in `stages=`:
@@ -251,7 +262,7 @@ Long chat histories inflate token usage, bury important facts (lost-in-the-middl
 
 ## Research and citing
 
-For academic use, cite this package in your paper’s software or methods section. A machine-readable citation file is provided as [`CITATION.cff`](CITATION.cff) (GitHub and Zenodo can ingest it). Replace the placeholder repository URL in that file with your fork’s URL when you publish.
+For academic use, cite this package in your paper’s software or methods section. A machine-readable citation file is provided as [`CITATION.cff`](CITATION.cff).
 
 ## Extension and growth
 

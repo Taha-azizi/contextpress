@@ -107,12 +107,15 @@ class Pipeline:
         self,
         conversation: Conversation,
         stats: CompressionStats | None = None,
+        *,
+        dry_run: bool = False,
     ) -> Conversation:
         if stats is not None:
             stats.turns_before = len(conversation.turns)
             stats.tokens_before = count_conversation_tokens(conversation, self.model)
             stats.context_type = conversation.type
             stats.token_budget = self.token_budget
+            stats.dry_run = dry_run
 
         result = clone_conversation(conversation)
         stage_order = effective_stage_order()
@@ -131,7 +134,7 @@ class Pipeline:
                 if delta != 0:
                     stats.turn_delta_by_stage[stage_name] = delta
 
-        if self.llm_backend is not None:
+        if self.llm_backend is not None and not dry_run:
             result = self._run_llm_tier(result, stats=stats)
 
         if stats is not None:

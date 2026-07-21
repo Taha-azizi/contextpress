@@ -49,6 +49,8 @@ class CompressionStats:
     compression_level: str | None = None
     context_type: str = "chat"
     token_budget: int | None = None
+    dry_run: bool = False
+    warnings_emitted: list[str] = field(default_factory=list)
 
     @property
     def turns_removed(self) -> int:
