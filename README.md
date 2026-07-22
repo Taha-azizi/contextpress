@@ -160,7 +160,7 @@ ContextManager(type="agent")
 | **Techniques** | Rules, TF–IDF, cosine similarity, NLTK, Sumy extractive summarization, tiktoken | Your provider’s chat/completions API (you supply the client) |
 | **API key** | None | Required for your chosen provider (OpenAI, Anthropic, …) |
 | **Determinism** | Deterministic for a fixed input and settings | Non-deterministic (model sampling) |
-| **How to enable** | Default: `ContextManager()` runs Tier 1 only | Pass `llm_backend=` (`OpenAIBackend`, `AnthropicBackend`, `GeminiBackend`, **`OllamaBackend`**, or custom `LLMBackend`) |
+| **How to enable** | Default: `ContextManager()` runs Tier 1 only | Pass `llm_backend=` (`OpenAIBackend`, **`ClaudeBackend`**, `GeminiBackend`, `OllamaBackend`, or custom `LLMBackend`) |
 
 **Note:** `ContextManager(model="gpt-4")` is only for **tiktoken** encoding when counting tokens in the **budget** stage. It does **not** call that model unless you also pass **`llm_backend`**.
 
@@ -252,6 +252,32 @@ out = cm.compress(messages, token_budget=4000)
 ```
 
 Runnable script: [`examples/llm_tier_ollama.py`](examples/llm_tier_ollama.py).
+
+**Claude (Anthropic)** — `pip install anthropic`, set `ANTHROPIC_API_KEY`:
+
+```python
+from contextpress import ContextManager
+from contextpress.llm.adapters import ClaudeBackend
+
+backend = ClaudeBackend(model="claude-haiku-4-5")
+cm = ContextManager(type="chat", llm_backend=backend, llm_min_input_chars=500)
+out = cm.compress(messages, token_budget=4000)
+```
+
+Runnable script: [`examples/llm_tier_claude.py`](examples/llm_tier_claude.py).
+
+**Gemini (Google)** — `pip install google-generativeai`, set `GOOGLE_API_KEY`:
+
+```python
+from contextpress import ContextManager
+from contextpress.llm.adapters import GeminiBackend
+
+backend = GeminiBackend(model_name="gemini-2.0-flash")
+cm = ContextManager(type="chat", llm_backend=backend, llm_min_input_chars=500)
+out = cm.compress(messages, token_budget=4000)
+```
+
+Runnable script: [`examples/llm_tier_gemini.py`](examples/llm_tier_gemini.py).
 
 ```bash
 pip install ollama

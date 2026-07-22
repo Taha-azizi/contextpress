@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 import warnings
 from typing import Any
 
@@ -133,6 +134,43 @@ class AnthropicBackend(LLMBackend):
         except Exception as exc:
             warnings.warn(f"contextpress AnthropicBackend.deduplicate failed: {exc}", stacklevel=2)
             return list(range(len(turns)))
+
+
+class ClaudeBackend(AnthropicBackend):
+    """
+    Convenience adapter for **Anthropic Claude** (wraps ``AnthropicBackend``).
+
+    Requires: ``pip install anthropic``
+
+    Usage::
+
+        from contextpress.llm.adapters import ClaudeBackend
+
+        backend = ClaudeBackend(model=\"claude-haiku-4-5\")  # uses ANTHROPIC_API_KEY
+        cm = ContextManager(type=\"chat\", llm_backend=backend)
+    """
+
+    def __init__(
+        self,
+        model: str = "claude-haiku-4-5",
+        *,
+        api_key: str | None = None,
+        client: Any | None = None,
+    ):
+        if client is not None:
+            super().__init__(client=client, model=model)
+            return
+        try:
+            import anthropic
+        except ImportError as exc:
+            raise ImportError(
+                "ClaudeBackend requires the 'anthropic' package. "
+                "Install with: pip install anthropic"
+            ) from exc
+        key = api_key or os.environ.get("ANTHROPIC_API_KEY")
+        if not key:
+            raise ValueError("Set ANTHROPIC_API_KEY or pass api_key= for ClaudeBackend")
+        super().__init__(client=anthropic.Anthropic(api_key=key), model=model)
 
 
 class OllamaBackend(LLMBackend):
@@ -270,18 +308,41 @@ class GeminiBackend(LLMBackend):
 
     Requires: ``pip install google-generativeai``
 
-    Usage::
+    Usage (API key from env ``GOOGLE_API_KEY`` or ``GEMINI_API_KEY``)::
 
-        import google.generativeai as genai
         from contextpress.llm.adapters import GeminiBackend
 
+        backend = GeminiBackend(model_name=\"gemini-2.0-flash\")
+        cm = ContextManager(type=\"chat\", llm_backend=backend)
+
+    Or pass a preconfigured model instance::
+
+        import google.generativeai as genai
         genai.configure(api_key=\"...\")
         backend = GeminiBackend(model=genai.GenerativeModel(\"gemini-2.0-flash\"))
-        cm = ContextManager(type=\"chat\", llm_backend=backend)
     """
 
-    def __init__(self, model: Any):
-        self.model = model
+    def __init__(
+        self,
+        model: Any | None = None,
+        *,
+        model_name: str = "gemini-2.0-flash",
+        api_key: str | None = None,
+    ):
+        if model is not None:
+            self.model = model
+            return
+        try:
+            import google.generativeai as genai
+        except ImportError as exc:
+            raise ImportError(
+                "GeminiBackend requires 'google-generativeai'. "
+                "Install with: pip install google-generativeai"
+            ) from exc
+        key = api_key or os.environ.get("GOOGLE_API_KEY") or os.environ.get("GEMINI_API_KEY")
+        if key:
+            genai.configure(api_key=key)
+        self.model = genai.GenerativeModel(model_name)
 
     def _generate(self, prompt: str, *, max_tokens: int) -> str:
         resp = self.model.generate_content(

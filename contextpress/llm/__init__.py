@@ -1,5 +1,6 @@
 from contextpress.llm.adapters import (
     AnthropicBackend,
+    ClaudeBackend,
     GeminiBackend,
     OllamaBackend,
     OpenAIBackend,
@@ -12,6 +13,7 @@ __all__ = [
     "OpenAIBackend",
     "OpenAICompatibleBackend",
     "AnthropicBackend",
+    "ClaudeBackend",
     "GeminiBackend",
     "OllamaBackend",
 ]

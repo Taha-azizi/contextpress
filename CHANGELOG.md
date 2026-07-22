@@ -4,6 +4,12 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.1] - 2026-07-22
+
+- **`ClaudeBackend`** — shortcut for Anthropic Claude (`ANTHROPIC_API_KEY` or `api_key=`).
+- **`GeminiBackend`** — optional `model_name` + `api_key` / env (`GOOGLE_API_KEY`, `GEMINI_API_KEY`).
+- Examples: `examples/llm_tier_claude.py`, `examples/llm_tier_gemini.py`.
+
 ## [0.5.0] - 2026-07-22
 
 - **`compress_async()`** — async wrapper around ``compress()`` for asyncio apps.
