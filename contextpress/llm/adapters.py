@@ -27,20 +27,45 @@ def _ollama_response_text(resp: Any) -> str:
 
 class OpenAIBackend(LLMBackend):
     """
-    Adapter for OpenAI-compatible APIs.
-    Requires: pip install openai
-    User must pass their own client instance.
+    Adapter for **OpenAI** chat APIs.
 
-    Usage:
-        from openai import OpenAI
+    Requires: ``pip install openai``
+
+    Usage (API key from env ``OPENAI_API_KEY`` or ``api_key=``)::
+
         from contextpress.llm.adapters import OpenAIBackend
 
-        backend = OpenAIBackend(client=OpenAI(), model="gpt-4o-mini")
-        cm = ContextManager(type="chat", llm_backend=backend)
+        backend = OpenAIBackend(model=\"gpt-4o-mini\")
+        cm = ContextManager(type=\"chat\", llm_backend=backend)
+
+    Or pass your own client::
+
+        from openai import OpenAI
+
+        backend = OpenAIBackend(client=OpenAI(), model=\"gpt-4o-mini\")
     """
 
-    def __init__(self, client: Any, model: str = "gpt-4o-mini"):
-        self.client = client
+    def __init__(
+        self,
+        client: Any | None = None,
+        model: str = "gpt-4o-mini",
+        *,
+        api_key: str | None = None,
+    ):
+        if client is not None:
+            self.client = client
+            self.model = model
+            return
+        try:
+            from openai import OpenAI
+        except ImportError as exc:
+            raise ImportError(
+                "OpenAIBackend requires the 'openai' package. " "Install with: pip install openai"
+            ) from exc
+        key = api_key or os.environ.get("OPENAI_API_KEY")
+        if not key:
+            raise ValueError("Set OPENAI_API_KEY or pass api_key= for OpenAIBackend")
+        self.client = OpenAI(api_key=key)
         self.model = model
 
     def summarize(self, text: str, max_tokens: int) -> str:

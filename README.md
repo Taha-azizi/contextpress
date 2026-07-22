@@ -218,11 +218,10 @@ Optional constructor knobs: **`llm_min_input_chars`**, **`llm_max_summary_tokens
 **Install SDKs** (not bundled): `pip install openai`, `anthropic`, and/or **`ollama`** (for local Ollama), or `pip install "contextpress[llm]"` from this repo’s `pyproject.toml` to pull all optional LLM clients.
 
 ```python
-from openai import OpenAI
 from contextpress import ContextManager
 from contextpress.llm.adapters import OpenAIBackend
 
-backend = OpenAIBackend(client=OpenAI(), model="gpt-4o-mini")
+backend = OpenAIBackend(model="gpt-4o-mini")  # uses OPENAI_API_KEY
 cm = ContextManager(
     type="chat",
     llm_backend=backend,

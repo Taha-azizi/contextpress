@@ -17,8 +17,6 @@ from __future__ import annotations
 import os
 import sys
 
-from openai import OpenAI
-
 from contextpress import ContextManager
 from contextpress.llm.adapters import OpenAIBackend
 
@@ -35,7 +33,7 @@ def main() -> None:
         {"role": "user", "content": "And numpy? " * 80},
     ]
 
-    backend = OpenAIBackend(client=OpenAI(), model="gpt-4o-mini")
+    backend = OpenAIBackend(model="gpt-4o-mini")
     cm = ContextManager(
         type="chat",
         llm_backend=backend,
