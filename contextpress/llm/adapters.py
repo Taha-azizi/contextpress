@@ -262,3 +262,50 @@ class OpenAICompatibleBackend(OpenAIBackend):
             client=OpenAI(base_url=base_url, api_key=api_key),
             model=model,
         )
+
+
+class GeminiBackend(LLMBackend):
+    """
+    Adapter for Google Gemini via ``google-generativeai``.
+
+    Requires: ``pip install google-generativeai``
+
+    Usage::
+
+        import google.generativeai as genai
+        from contextpress.llm.adapters import GeminiBackend
+
+        genai.configure(api_key=\"...\")
+        backend = GeminiBackend(model=genai.GenerativeModel(\"gemini-2.0-flash\"))
+        cm = ContextManager(type=\"chat\", llm_backend=backend)
+    """
+
+    def __init__(self, model: Any):
+        self.model = model
+
+    def _generate(self, prompt: str, *, max_tokens: int) -> str:
+        resp = self.model.generate_content(
+            prompt,
+            generation_config={"max_output_tokens": max(64, int(max_tokens))},
+        )
+        text = getattr(resp, "text", None)
+        return str(text).strip() if text else ""
+
+    def summarize(self, text: str, max_tokens: int) -> str:
+        try:
+            out = self._generate(f"Summarize concisely:\n\n{text}", max_tokens=max_tokens)
+            return out if out else text
+        except Exception as exc:
+            warnings.warn(f"contextpress GeminiBackend.summarize failed: {exc}", stacklevel=2)
+            raise
+
+    def deduplicate(self, turns: list[str]) -> list[int]:
+        if len(turns) <= 1:
+            return list(range(len(turns)))
+        prompt = f"{DEDUP_SYSTEM_PROMPT}\n\n{format_numbered_turns(turns)}"
+        try:
+            out = self._generate(prompt, max_tokens=128)
+            return parse_keep_indices(out, len(turns))
+        except Exception as exc:
+            warnings.warn(f"contextpress GeminiBackend.deduplicate failed: {exc}", stacklevel=2)
+            return list(range(len(turns)))

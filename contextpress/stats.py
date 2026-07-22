@@ -60,6 +60,27 @@ class CompressionStats:
     def tokens_saved(self) -> int:
         return max(0, self.tokens_before - self.tokens_after)
 
+    def to_dict(self) -> dict[str, Any]:
+        """JSON-serializable snapshot of this run."""
+        return {
+            "turns_before": self.turns_before,
+            "turns_after": self.turns_after,
+            "turns_removed": self.turns_removed,
+            "tokens_before": self.tokens_before,
+            "tokens_after": self.tokens_after,
+            "tokens_saved": self.tokens_saved,
+            "stages_run": list(self.stages_run),
+            "turn_delta_by_stage": dict(self.turn_delta_by_stage),
+            "llm_tier_applied": self.llm_tier_applied,
+            "llm_dedup_turns_before": self.llm_dedup_turns_before,
+            "llm_dedup_turns_after": self.llm_dedup_turns_after,
+            "compression_level": self.compression_level,
+            "context_type": self.context_type,
+            "token_budget": self.token_budget,
+            "dry_run": self.dry_run,
+            "warnings_emitted": list(self.warnings_emitted),
+        }
+
 
 @dataclass
 class CompressionResult:
@@ -67,3 +88,9 @@ class CompressionResult:
 
     messages: Any
     stats: CompressionStats
+
+    def to_dict(self, *, include_messages: bool = True) -> dict[str, Any]:
+        data = {"stats": self.stats.to_dict()}
+        if include_messages:
+            data["messages"] = self.messages
+        return data

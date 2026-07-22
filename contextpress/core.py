@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import copy
 import warnings
 from typing import TYPE_CHECKING, Any
@@ -85,6 +86,20 @@ class ContextManager:
             disable=disable,
         )
         return preview.stats.tokens_after <= token_budget
+
+    def compare_presets(
+        self,
+        messages: Any,
+        token_budget: int | None = None,
+        *,
+        presets: tuple[str, ...] = ("low", "medium", "high"),
+    ) -> dict[str, CompressionStats]:
+        """Dry-run each compression preset and return stats keyed by preset name."""
+        results: dict[str, CompressionStats] = {}
+        for preset in presets:
+            preview = self.preview(messages, token_budget=token_budget, compression=preset)
+            results[preset] = preview.stats
+        return results
 
     def preview(
         self,
@@ -175,6 +190,29 @@ class ContextManager:
             assert stats is not None
             return CompressionResult(messages=messages_out, stats=stats)
         return messages_out
+
+    async def compress_async(
+        self,
+        messages: Any,
+        token_budget: int | None = None,
+        *,
+        compression: str | None = None,
+        stages: list[str] | None = None,
+        disable: list[str] | None = None,
+        return_stats: bool = False,
+        dry_run: bool = False,
+    ) -> Any | CompressionResult:
+        """Async wrapper around ``compress()`` (runs in a worker thread)."""
+        return await asyncio.to_thread(
+            self.compress,
+            messages,
+            token_budget,
+            compression=compression,
+            stages=stages,
+            disable=disable,
+            return_stats=return_stats,
+            dry_run=dry_run,
+        )
 
     def set_compression(self, compression: str) -> None:
         """Change the default preset for subsequent ``compress()`` calls (low / medium / high)."""

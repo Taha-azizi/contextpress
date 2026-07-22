@@ -67,6 +67,20 @@ if cm.fits_budget(messages, 4000):
     ...
 ```
 
+**Compare presets** (0.5+):
+
+```python
+rows = cm.compare_presets(messages, token_budget=500)
+for preset, stats in rows.items():
+    print(preset, stats.tokens_saved)
+```
+
+**Async** (0.5+):
+
+```python
+out = await cm.compress_async(messages, token_budget=2000)
+```
+
 ### Custom stages (0.3+)
 
 Register a `BaseStrategy` and include it in `stages=`:
@@ -146,7 +160,7 @@ ContextManager(type="agent")
 | **Techniques** | Rules, TF–IDF, cosine similarity, NLTK, Sumy extractive summarization, tiktoken | Your provider’s chat/completions API (you supply the client) |
 | **API key** | None | Required for your chosen provider (OpenAI, Anthropic, …) |
 | **Determinism** | Deterministic for a fixed input and settings | Non-deterministic (model sampling) |
-| **How to enable** | Default: `ContextManager()` runs Tier 1 only | Pass `llm_backend=` (`OpenAIBackend`, `AnthropicBackend`, **`OllamaBackend`**, or custom `LLMBackend`) |
+| **How to enable** | Default: `ContextManager()` runs Tier 1 only | Pass `llm_backend=` (`OpenAIBackend`, `AnthropicBackend`, `GeminiBackend`, **`OllamaBackend`**, or custom `LLMBackend`) |
 
 **Note:** `ContextManager(model="gpt-4")` is only for **tiktoken** encoding when counting tokens in the **budget** stage. It does **not** call that model unless you also pass **`llm_backend`**.
 

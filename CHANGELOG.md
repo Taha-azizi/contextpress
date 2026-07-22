@@ -4,6 +4,14 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-07-22
+
+- **`compress_async()`** — async wrapper around ``compress()`` for asyncio apps.
+- **`compare_presets()`** — dry-run low/medium/high on the same messages and compare stats.
+- **`CompressionStats.to_dict()` / `CompressionResult.to_dict()`** — JSON-friendly export.
+- **`GeminiBackend`** — Google Gemini Tier 2 adapter (optional ``google-generativeai``).
+- Example: `examples/benchmark_presets.py`.
+
 ## [0.4.0] - 2026-07-20
 
 - **`preview()` / `dry_run=True`** — simulate compression and get stats without changing messages (Tier 1 only; no LLM calls).
