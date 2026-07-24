@@ -60,6 +60,12 @@ class CompressionStats:
     def tokens_saved(self) -> int:
         return max(0, self.tokens_before - self.tokens_after)
 
+    @property
+    def token_savings_pct(self) -> float:
+        if self.tokens_before <= 0:
+            return 0.0
+        return round(100.0 * self.tokens_saved / self.tokens_before, 2)
+
     def to_dict(self) -> dict[str, Any]:
         """JSON-serializable snapshot of this run."""
         return {
@@ -69,6 +75,7 @@ class CompressionStats:
             "tokens_before": self.tokens_before,
             "tokens_after": self.tokens_after,
             "tokens_saved": self.tokens_saved,
+            "token_savings_pct": self.token_savings_pct,
             "stages_run": list(self.stages_run),
             "turn_delta_by_stage": dict(self.turn_delta_by_stage),
             "llm_tier_applied": self.llm_tier_applied,

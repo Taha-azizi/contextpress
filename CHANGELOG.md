@@ -4,6 +4,12 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.3] - 2026-07-24
+
+- **`recommend_preset()`** — pick the mildest preset (low → medium → high) that fits a token budget.
+- **`CompressionStats.token_savings_pct`** — percentage tokens saved; included in ``to_dict()``.
+- Example: `examples/pick_preset.py`.
+
 ## [0.5.2] - 2026-07-22
 
 - **`OpenAIBackend`** — optional `api_key` / env (`OPENAI_API_KEY`); no manual client required.

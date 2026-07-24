@@ -101,6 +101,25 @@ class ContextManager:
             results[preset] = preview.stats
         return results
 
+    def recommend_preset(
+        self,
+        messages: Any,
+        token_budget: int,
+        *,
+        presets: tuple[str, ...] = ("low", "medium", "high"),
+    ) -> str:
+        """Return the mildest preset whose dry-run output fits ``token_budget``.
+
+        Presets are tried in order (default: low → medium → high). If none fit,
+        returns the preset with the lowest ``tokens_after`` (most compression).
+        """
+        _validate_token_budget(token_budget)
+        rows = self.compare_presets(messages, token_budget=token_budget, presets=presets)
+        for preset in presets:
+            if rows[preset].tokens_after <= token_budget:
+                return preset
+        return min(presets, key=lambda name: rows[name].tokens_after)
+
     def preview(
         self,
         messages: Any,

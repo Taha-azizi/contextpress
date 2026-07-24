@@ -72,7 +72,14 @@ if cm.fits_budget(messages, 4000):
 ```python
 rows = cm.compare_presets(messages, token_budget=500)
 for preset, stats in rows.items():
-    print(preset, stats.tokens_saved)
+    print(preset, stats.tokens_saved, stats.token_savings_pct)
+```
+
+**Recommend a preset** (0.5.3+):
+
+```python
+preset = cm.recommend_preset(messages, token_budget=500)
+out = cm.compress(messages, token_budget=500, compression=preset)
 ```
 
 **Async** (0.5+):
