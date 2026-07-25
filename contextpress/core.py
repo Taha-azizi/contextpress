@@ -210,6 +210,33 @@ class ContextManager:
             return CompressionResult(messages=messages_out, stats=stats)
         return messages_out
 
+    def compress_many(
+        self,
+        conversations: list[Any],
+        token_budget: int | None = None,
+        *,
+        compression: str | None = None,
+        stages: list[str] | None = None,
+        disable: list[str] | None = None,
+        return_stats: bool = False,
+        dry_run: bool = False,
+    ) -> list[Any] | list[CompressionResult]:
+        """Run ``compress()`` on each conversation in ``conversations``."""
+        if not isinstance(conversations, list):
+            raise TypeError("conversations must be a list")
+        return [
+            self.compress(
+                messages,
+                token_budget=token_budget,
+                compression=compression,
+                stages=stages,
+                disable=disable,
+                return_stats=return_stats,
+                dry_run=dry_run,
+            )
+            for messages in conversations
+        ]
+
     async def compress_async(
         self,
         messages: Any,

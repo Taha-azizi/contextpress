@@ -82,6 +82,12 @@ preset = cm.recommend_preset(messages, token_budget=500)
 out = cm.compress(messages, token_budget=500, compression=preset)
 ```
 
+**Batch compress** (0.5.4+):
+
+```python
+results = cm.compress_many(list_of_conversations, token_budget=2000, return_stats=True)
+```
+
 **Async** (0.5+):
 
 ```python
@@ -149,6 +155,8 @@ ContextManager(type="chat")
 ContextManager(type="rag_doc")
 ContextManager(type="agent")
 ```
+
+Runnable agent example: [`examples/agent_pipeline.py`](examples/agent_pipeline.py).
 
 ## Pipeline stages
 
