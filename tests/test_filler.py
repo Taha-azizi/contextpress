@@ -21,6 +21,23 @@ def test_filler_sentence_start():
     t = Turn(role="assistant", content="Basically, we use Postgres.")
     out = _run()([t]).turns[0]
     assert "basically" not in out.content.lower()
+    assert not out.content.startswith(",")
+    assert out.content.startswith("We")
+
+
+def test_filler_cleans_orphan_commas():
+    t = Turn(role="assistant", content="Yeah, you know, you can add indexes.")
+    out = _run()([t]).turns[0]
+    assert "you know" not in out.content.lower()
+    assert ", ," not in out.content
+    assert "Yeah, you can" in out.content
+
+
+def test_filler_only_user_not_dropped():
+    t = Turn(role="user", content="Basically.")
+    out = _run()([t]).turns
+    assert len(out) == 1
+    assert out[0].role == "user"
 
 
 def test_acknowledgement_assistant_dropped():

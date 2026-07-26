@@ -16,7 +16,7 @@ __all__ = [
     "CompressionResult",
     "CompressionStats",
 ]
-__version__ = "0.5.7"
+__version__ = "0.5.8"
 
 
 def __getattr__(name: str) -> Any:

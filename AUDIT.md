@@ -26,7 +26,7 @@ Profiles: `chat`, `rag_doc`, `agent`. Tier 1 deps: nltk, scikit-learn, sumy, tik
 |----|----------|---------|--------|
 | C1 | Medium | Invariant 1 says system turns are untouched; `BudgetStrategy` truncates system as last resort (`budget.py`) | Document in contract (Phase 2) or change behavior later |
 | C2 | Medium | LLM dedup failures in `Pipeline._run_llm_tier` fall back silently (no warning); summarize path warns | Add warning (Phase 2) |
-| C3 | Medium | Filler drops ack phrases like `"sounds good"` before resolution can use them (`filler.py` / `resolution.py`) | Document + fixture test (Phases 3–4) |
+| C3 | Low | Filler drops assistant-only ack phrases like `"sounds good"` before resolution (`filler.py` / `resolution.py`) | **By design** — fixture `08_*` + Layer-A still collapses; documented |
 | C4 | Low | `Turn.importance` / `Turn.resolved` set by resolution but unused by pipeline | Leave; optional cleanup later |
 
 ### Duplication / maintainability (Phase 2)
@@ -72,7 +72,16 @@ Profiles: `chat`, `rag_doc`, `agent`. Tier 1 deps: nltk, scikit-learn, sumy, tik
 | 1 Analysis | **0.5.5** | This document + backlog — shipped |
 | 2 Refactor | **0.5.6** | R1–R3, C1 doc, C2 warning (no semantic stage changes) — shipped |
 | 3 Fixtures | **0.5.7** | Offline chat samples + smoke/invariant tests — shipped |
-| 4 Fixes | **0.5.8** | Bugs proven by fixtures + T1–T5 regression tests |
+| 4 Fixes | **0.5.8** | Bugs proven by fixtures + T1–T5 regression tests — shipped |
+
+### Phase 4 outcomes (0.5.8)
+
+| Fix | Detail |
+|-----|--------|
+| Filler punctuation | Cleanup orphan commas / leading punctuation after phrase removal |
+| User filler-only | User turns are not dropped when filler removal empties them |
+| `messages=None` | Raises ``TypeError`` (was silently empty) |
+| Regression tests | Extra keys, rag_doc skips resolution, resolution fixture, ``compress_many`` immutability |
 
 ## Invariants checklist (from `pipeline.py`)
 

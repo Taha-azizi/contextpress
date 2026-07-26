@@ -133,7 +133,7 @@ def normalize_messages(
     ctx: dict[str, Any] = {"format": "unknown", "extras": []}
 
     if messages is None:
-        return Conversation(turns=[], type=context_type, metadata={}), ctx
+        raise TypeError("contextpress: messages must not be None")
 
     # LangChain-style objects (list of objects with .content)
     if (

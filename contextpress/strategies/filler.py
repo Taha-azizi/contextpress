@@ -98,13 +98,28 @@ _FILLER_RE = _build_filler_pattern()
 _ACTUALLY_NO = re.compile(r"^\s*actually\s*,\s*no\b", re.IGNORECASE)
 
 
+def _cleanup_after_filler(text: str) -> str:
+    """Repair punctuation left behind after filler phrase removal."""
+    s = re.sub(r"\s+", " ", text)
+    s = re.sub(r"\s*,\s*(?:,\s*)+", ", ", s)
+    s = re.sub(r"\s*;\s*(?:;\s*)+", "; ", s)
+    s = re.sub(r"\s+([,.;:!?])", r"\1", s)
+    s = re.sub(r"^[\s,;:.]+", "", s)
+    s = re.sub(r"[,;]\s*$", "", s)
+    s = s.strip()
+    if s and s[0].islower():
+        s = s[0].upper() + s[1:]
+    return s
+
+
 def _remove_fillers_text(text: str) -> str:
     if _ACTUALLY_NO.match(text):
         return text
     # do not strip "actually" in "actually, no"
     s = _FILLER_RE.sub("", text)
-    s = re.sub(r"\s+", " ", s).strip()
-    return s
+    if s == text:
+        return text
+    return _cleanup_after_filler(s)
 
 
 def _is_acknowledgement_only(text: str) -> bool:
@@ -152,6 +167,9 @@ class FillerStrategy(BaseStrategy):
 
             new_text = _remove_fillers_text(text)
             if not new_text.strip():
+                # Never drop user turns entirely (filler-only user messages stay).
+                if turn.role == "user":
+                    new_turns.append(copy.deepcopy(turn))
                 continue
 
             if new_text != text:

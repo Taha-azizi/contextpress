@@ -4,6 +4,14 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.8] - 2026-07-26
+
+- **Stabilization Phase 4** — fixture-driven fixes:
+  - Filler stage cleans orphan commas / leading punctuation after removals.
+  - User turns are never dropped when filler removal would empty them.
+  - ``compress(None)`` / ``normalize_messages(None)`` raise ``TypeError``.
+  - Regression tests for rag_doc (no resolution), resolution fixture, extra dict keys, batch immutability.
+
 ## [0.5.7] - 2026-07-26
 
 - **Stabilization Phase 3** — offline chat fixtures under `tests/fixtures/chats/` (8 synthetic threads).
