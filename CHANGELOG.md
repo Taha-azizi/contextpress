@@ -4,6 +4,11 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.5] - 2026-07-26
+
+- **Stabilization Phase 1** — codebase audit and prioritized backlog in [`AUDIT.md`](AUDIT.md).
+- No runtime API changes; prep for low-risk refactors (0.5.6) and fixture-driven fixes (0.5.7–0.5.8).
+
 ## [0.5.4] - 2026-07-25
 
 - **`compress_many()`** — batch ``compress()`` over a list of conversations.

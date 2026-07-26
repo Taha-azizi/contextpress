@@ -33,6 +33,10 @@ pytest tests -q
 
 See the numbered block at the top of `contextpress/pipeline.py`. Tests assume Tier 1 is deterministic (no live LLM calls in `tests/`).
 
+## Stabilization backlog
+
+See [`AUDIT.md`](AUDIT.md) for pre-0.6.0 findings (contract gaps, refactors, fixture gaps). Prefer low-risk items from that backlog before adding stages or new dependencies.
+
 ## Adding a stage
 
 1. Subclass `BaseStrategy`, implement `process`.

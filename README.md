@@ -320,6 +320,7 @@ For academic use, cite this package in your paper’s software or methods sectio
 
 ## Extension and growth
 
+- **Stabilization audit** — See [`AUDIT.md`](AUDIT.md) for known contract gaps and the 0.5.5–0.5.8 backlog (refactors, fixtures, fixes).
 - **Custom stages** — Subclass `contextpress.strategies.base.BaseStrategy` and plug in via a custom `Pipeline` subclass or future registry hooks.
 - **Tier 2** — Implement `LLMBackend` (`summarize`, `deduplicate`) for provider-specific semantic compression; failures fall back to Tier 1.
 - **Presets API** — `from contextpress.compression import VALID_STAGES, STAGE_ORDER` for tooling and experiments.
