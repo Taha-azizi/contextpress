@@ -3,8 +3,6 @@ from __future__ import annotations
 import copy
 import re
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 from sumy.nlp.tokenizers import Tokenizer
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.summarizers.lsa import LsaSummarizer
@@ -12,6 +10,7 @@ from sumy.summarizers.lsa import LsaSummarizer
 from contextpress.models import Conversation, Turn
 from contextpress.normalizer import apply_text_to_turn, extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
+from contextpress.text_sim import tfidf_cosine
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
@@ -126,11 +125,4 @@ class RecencyStrategy(BaseStrategy):
         )
 
     def _relevance_score(self, query: str, chunk: str) -> float:
-        if not query.strip() or not chunk.strip():
-            return 0.0
-        try:
-            vec = TfidfVectorizer(min_df=1, max_df=1.0)
-            mat = vec.fit_transform([query, chunk])
-            return float(cosine_similarity(mat[0:1], mat[1:2])[0, 0])
-        except ValueError:
-            return 0.0
+        return tfidf_cosine(query, chunk)

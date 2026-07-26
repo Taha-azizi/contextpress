@@ -17,7 +17,8 @@ def bootstrap_nltk() -> None:
     flag = Path.home() / ".contextpress" / "nltk_ready"
     if flag.exists():
         return
-    packages = ["punkt", "stopwords", "averaged_perceptron_tagger"]
+    # Used by ResolutionStrategy._noun_subject (word_tokenize + pos_tag).
+    packages = ["punkt", "averaged_perceptron_tagger"]
     failed: list[str] = []
     for pkg in packages:
         try:
@@ -27,7 +28,7 @@ def bootstrap_nltk() -> None:
     if failed:
         warnings.warn(
             f"contextpress: could not download NLTK data {failed}; "
-            "resolution/recency may degrade. Check network or set NLTK_DATA.",
+            "resolution subject extraction may degrade. Check network or set NLTK_DATA.",
             stacklevel=2,
         )
     flag.parent.mkdir(parents=True, exist_ok=True)

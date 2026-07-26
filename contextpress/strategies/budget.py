@@ -6,18 +6,8 @@ import warnings
 import tiktoken
 
 from contextpress.models import Conversation, Turn
-from contextpress.normalizer import extract_text_for_processing
+from contextpress.stats import count_turn_tokens, get_encoding
 from contextpress.strategies.base import BaseStrategy
-
-
-def _turn_tokens(turn: Turn, encoding: tiktoken.Encoding) -> int:
-    role = turn.role
-    if isinstance(turn.content, str):
-        body = turn.content
-    else:
-        body = extract_text_for_processing(turn)
-    text = f"{role}\n{body}"
-    return len(encoding.encode(text))
 
 
 def _truncate_system_turn(turn: Turn, encoding: tiktoken.Encoding, max_tokens: int) -> Turn:
@@ -62,20 +52,12 @@ class BudgetStrategy(BaseStrategy):
         self.token_budget = int(token_budget)
         self.model = model
 
-    def _encoding(self) -> tiktoken.Encoding:
-        if self.model:
-            try:
-                return tiktoken.encoding_for_model(self.model)
-            except KeyError:
-                pass
-        return tiktoken.get_encoding("cl100k_base")
-
     def process(self, conversation: Conversation) -> Conversation:
-        enc = self._encoding()
+        enc = get_encoding(self.model)
         turns: list[Turn] = [copy.deepcopy(t) for t in conversation.turns]
 
         def total_toks(ts: list[Turn]) -> int:
-            return sum(_turn_tokens(t, enc) for t in ts)
+            return sum(count_turn_tokens(t, enc) for t in ts)
 
         if total_toks(turns) <= self.token_budget:
             return Conversation(
@@ -96,7 +78,7 @@ class BudgetStrategy(BaseStrategy):
                 n_removed += 1
                 continue
 
-            # No non-system left to remove (or only protected pair) — truncate system from end
+            # Last resort: truncate system (see behavior contract note on invariant 1)
             warnings.warn(
                 "contextpress: truncating system prompt to satisfy token budget",
                 stacklevel=2,
@@ -104,7 +86,7 @@ class BudgetStrategy(BaseStrategy):
             for si, t in enumerate(turns):
                 if t.role != "system":
                     continue
-                others = total_toks(turns) - _turn_tokens(t, enc)
+                others = total_toks(turns) - count_turn_tokens(t, enc)
                 room = max(1, self.token_budget - others)
                 turns[si] = _truncate_system_turn(t, enc, room)
             break

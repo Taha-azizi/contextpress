@@ -69,8 +69,8 @@ Profiles: `chat`, `rag_doc`, `agent`. Tier 1 deps: nltk, scikit-learn, sumy, tik
 
 | Phase | Version | Scope |
 |-------|---------|--------|
-| 1 Analysis | **0.5.5** | This document + backlog |
-| 2 Refactor | **0.5.6** | R1–R3, C1 doc, C2 warning (no semantic stage changes) |
+| 1 Analysis | **0.5.5** | This document + backlog — shipped |
+| 2 Refactor | **0.5.6** | R1–R3, C1 doc, C2 warning (no semantic stage changes) — shipped |
 | 3 Fixtures | **0.5.7** | Offline chat samples + smoke/invariant tests |
 | 4 Fixes | **0.5.8** | Bugs proven by fixtures + T1–T5 regression tests |
 

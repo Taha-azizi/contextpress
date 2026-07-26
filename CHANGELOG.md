@@ -4,6 +4,15 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.6] - 2026-07-26
+
+- **Stabilization Phase 2** — low-risk refactors (see [`AUDIT.md`](AUDIT.md)):
+  - Shared ``tfidf_cosine`` / ``tfidf_similarity_matrix`` in ``contextpress.text_sim``.
+  - ``BudgetStrategy`` uses ``stats.get_encoding`` / ``count_turn_tokens``.
+  - NLTK bootstrap drops unused ``stopwords``; warning text fixed.
+  - Behavior contract clarifies budget may truncate system as last resort.
+  - LLM deduplicate failures now emit a warning (invariant 9).
+
 ## [0.5.5] - 2026-07-26
 
 - **Stabilization Phase 1** — codebase audit and prioritized backlog in [`AUDIT.md`](AUDIT.md).

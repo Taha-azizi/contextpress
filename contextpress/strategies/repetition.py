@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import copy
 
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
-
 from contextpress.models import Conversation, Turn
 from contextpress.normalizer import extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
+from contextpress.text_sim import tfidf_similarity_matrix
 
 
 def _threshold_for_aggr(aggressiveness: float) -> float:
@@ -55,12 +53,9 @@ class RepetitionStrategy(BaseStrategy):
                 g_idx.append(gi)
             if len(texts) < 2:
                 return
-            vec = TfidfVectorizer(min_df=1, max_df=1.0)
-            try:
-                mat = vec.fit_transform(texts)
-            except ValueError:
+            sim = tfidf_similarity_matrix(texts)
+            if sim is None:
                 return
-            sim = cosine_similarity(mat)
             n = len(g_idx)
             for a in range(n):
                 for b in range(a + 1, n):

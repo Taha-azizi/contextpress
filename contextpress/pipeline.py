@@ -1,7 +1,9 @@
 """
 CONTEXTPRESS BEHAVIOR CONTRACT
 ===============================
-1. system turns are ALWAYS passed through all stages untouched.
+1. system turns are ALWAYS passed through NLP stages untouched. Budget may
+   truncate system content as a last resort when the token cap cannot otherwise
+   be met (emits a warning).
 2. Input is NEVER mutated. Always return new objects.
 3. Output format ALWAYS mirrors input format.
 4. Most recent 3 non-system turns are NEVER compressed by Stage 4.
@@ -203,6 +205,10 @@ class Pipeline:
             try:
                 keep_idx = self.llm_backend.deduplicate(texts)
             except Exception:
+                warnings.warn(
+                    "contextpress: LLM deduplicate failed; keeping all non-system turns",
+                    stacklevel=2,
+                )
                 keep_idx = list(range(len(ns_turns)))
             valid = sorted(
                 {

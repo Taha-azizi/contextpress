@@ -4,12 +4,11 @@ import copy
 import re
 
 import nltk
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
 
 from contextpress.models import Conversation, Turn
 from contextpress.normalizer import extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
+from contextpress.text_sim import tfidf_cosine
 
 LAYER_A_PHRASES = [
     "let's go with",
@@ -78,12 +77,7 @@ def _find_thread_start(conv: Conversation, res_idx: int, max_lookback: int = 20)
         if turns[i].role == "system":
             break
         ttext = extract_text_for_processing(turns[i])
-        try:
-            vec = TfidfVectorizer(min_df=1, max_df=1.0)
-            mat = vec.fit_transform([ttext, res_text])
-            sim = cosine_similarity(mat[0:1], mat[1:2])[0, 0]
-        except ValueError:
-            sim = 0.0
+        sim = tfidf_cosine(ttext, res_text)
         if sim >= 0.3:
             start = i
         else:
