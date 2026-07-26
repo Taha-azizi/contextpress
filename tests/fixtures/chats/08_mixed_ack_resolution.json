@@ -1,0 +1,13 @@
+{
+  "id": "08_mixed_ack_resolution",
+  "type": "chat",
+  "source": "synthetic (filler ack may remove resolution signal — AUDIT C3)",
+  "messages": [
+    {"role": "user", "content": "Should we ship Friday or Monday?"},
+    {"role": "assistant", "content": "Monday is safer for the release window."},
+    {"role": "user", "content": "Sounds good"},
+    {"role": "assistant", "content": "Sounds good"},
+    {"role": "user", "content": "We'll use Monday then."},
+    {"role": "assistant", "content": "Confirmed. Monday release it is."}
+  ]
+}

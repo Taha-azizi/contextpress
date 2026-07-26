@@ -1,0 +1,16 @@
+{
+  "id": "02_resolution_thread",
+  "type": "chat",
+  "source": "synthetic (decision / agreement thread)",
+  "messages": [
+    {"role": "system", "content": "You help teams pick technologies."},
+    {"role": "user", "content": "Should we use Postgres or Mongo for the billing service?"},
+    {"role": "assistant", "content": "Postgres is a better fit for transactional billing and joins."},
+    {"role": "user", "content": "What about schema flexibility?"},
+    {"role": "assistant", "content": "JSON columns cover most flexibility needs without giving up ACID."},
+    {"role": "user", "content": "Ok let's go with Postgres then."},
+    {"role": "assistant", "content": "Agreed. Postgres it is for billing."},
+    {"role": "user", "content": "Next: how do we deploy?"},
+    {"role": "assistant", "content": "Use blue-green deploys on Kubernetes with a short drain window."}
+  ]
+}

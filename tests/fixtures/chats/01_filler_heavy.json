@@ -1,0 +1,14 @@
+{
+  "id": "01_filler_heavy",
+  "type": "chat",
+  "source": "synthetic (ShareGPT-style filler patterns)",
+  "messages": [
+    {"role": "system", "content": "You are a helpful coding assistant."},
+    {"role": "user", "content": "Basically, I was wondering if I should use Postgres or Mongo for my app?"},
+    {"role": "assistant", "content": "Honestly, it really depends. Basically Postgres is great for relational data. Just saying."},
+    {"role": "user", "content": "Sounds good. What about indexes?"},
+    {"role": "assistant", "content": "Yeah, you know, you can add B-tree indexes. Actually, for text search, consider GIN."},
+    {"role": "user", "content": "Ok cool. And migrations?"},
+    {"role": "assistant", "content": "Basically use Alembic or Flyway. Honestly that should work fine."}
+  ]
+}

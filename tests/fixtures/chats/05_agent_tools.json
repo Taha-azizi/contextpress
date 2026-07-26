@@ -1,0 +1,16 @@
+{
+  "id": "05_agent_tools",
+  "type": "agent",
+  "source": "synthetic (tool-using agent thread)",
+  "messages": [
+    {"role": "system", "content": "You are a deploy agent with tools."},
+    {"role": "user", "content": "Is api-v2 on staging?"},
+    {"role": "assistant", "content": "Checking status <tool_call> get_deploy_status(api-v2, staging)"},
+    {"role": "user", "content": "Tool result: version 2.4.1 healthy"},
+    {"role": "assistant", "content": "api-v2 staging is healthy on 2.4.1."},
+    {"role": "user", "content": "We've decided on using the new pipeline for deploy."},
+    {"role": "assistant", "content": "Confirmed. Scheduling via the new pipeline."},
+    {"role": "user", "content": "Any blockers?"},
+    {"role": "assistant", "content": "Basically none. Honestly looking good."}
+  ]
+}

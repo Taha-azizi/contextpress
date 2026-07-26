@@ -1,0 +1,13 @@
+{
+  "id": "03_repetition",
+  "type": "chat",
+  "source": "synthetic (near-duplicate user/assistant turns)",
+  "messages": [
+    {"role": "user", "content": "Please explain how Python list comprehensions work with filtering and nesting examples included for beginners."},
+    {"role": "assistant", "content": "List comprehensions build lists from iterables: [x for x in items if cond]. Nested ones mirror nested loops and keep filtering close to each level."},
+    {"role": "user", "content": "Please explain how Python list comprehensions work with filtering and nesting examples included for beginners please."},
+    {"role": "assistant", "content": "List comprehensions build lists from iterables: [x for x in items if cond]. Nested ones mirror nested loops and keep filtering close to each level of iteration."},
+    {"role": "user", "content": "Can you show a dict comprehension too?"},
+    {"role": "assistant", "content": "Sure: {k: v for k, v in pairs if v is not None}."}
+  ]
+}

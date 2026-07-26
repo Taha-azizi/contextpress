@@ -1,0 +1,9 @@
+{
+  "id": "07_short_stable",
+  "type": "chat",
+  "source": "synthetic (short chat; expect minimal change)",
+  "messages": [
+    {"role": "user", "content": "What is 2+2?"},
+    {"role": "assistant", "content": "4"}
+  ]
+}

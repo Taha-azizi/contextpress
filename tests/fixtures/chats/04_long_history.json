@@ -1,0 +1,20 @@
+{
+  "id": "04_long_history",
+  "type": "chat",
+  "source": "synthetic (long multi-turn, LMSYS-style length)",
+  "messages": [
+    {"role": "system", "content": "You are a concise technical assistant for web infrastructure questions."},
+    {"role": "user", "content": "Topic A: please explain HTTP in detail including methods, status codes, and common headers used in APIs today."},
+    {"role": "assistant", "content": "HTTP is a request-response protocol. Common methods are GET, POST, PUT, PATCH, DELETE. Status codes include 2xx success, 4xx client errors, 5xx server errors. Headers like Content-Type, Authorization, and Cache-Control are ubiquitous."},
+    {"role": "user", "content": "Topic B: what is TLS and how does the handshake roughly work for HTTPS websites and APIs?"},
+    {"role": "assistant", "content": "TLS encrypts traffic between clients and servers. The handshake negotiates ciphers, authenticates the server certificate, and derives session keys so application data can be encrypted."},
+    {"role": "user", "content": "Topic C: explain DNS records people usually need for apps, including A, AAAA, CNAME, and TXT."},
+    {"role": "assistant", "content": "DNS maps names to addresses and services. A/AAAA point to IPv4/IPv6, CNAME aliases names, and TXT often stores verification or SPF/DKIM related data."},
+    {"role": "user", "content": "Topic D: what problems does a CDN solve and when should I not put everything behind a CDN?"},
+    {"role": "assistant", "content": "A CDN caches static and some dynamic content near users, reducing latency and origin load. Avoid caching personalized or rapidly changing private responses without careful cache keys."},
+    {"role": "user", "content": "Topic E: summarize REST constraints and how they differ from RPC style APIs in practice."},
+    {"role": "assistant", "content": "REST emphasizes resources, uniform interfaces, and hypermedia ideas. RPC centers on procedure calls. In practice many 'REST' APIs are resource-ish HTTP JSON endpoints without full HATEOAS."},
+    {"role": "user", "content": "Back to my real question: how do I cache API responses safely for a multi-tenant SaaS with per-user data?"},
+    {"role": "assistant", "content": "Use Cache-Control with short TTLs, vary on Authorization or tenant id, prefer ETags for validation, and invalidate on writes. Never share personalized responses across tenants."}
+  ]
+}

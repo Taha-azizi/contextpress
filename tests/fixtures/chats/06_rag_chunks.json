@@ -1,0 +1,13 @@
+{
+  "id": "06_rag_chunks",
+  "type": "rag_doc",
+  "source": "synthetic (RAG document chunks + query)",
+  "messages": [
+    {"role": "system", "content": "Answer using the provided document chunks."},
+    {"role": "user", "content": "Chunk 1: Contextpress is a Python library for deterministic LLM context compression using classical NLP stages such as filler removal, repetition detection, and token budgets."},
+    {"role": "user", "content": "Chunk 2: The package supports chat, rag_doc, and agent profiles. Resolution collapsing is disabled for rag_doc because documents are not speaker dialogues."},
+    {"role": "user", "content": "Chunk 3: Optional Tier 2 LLM backends can summarize after Tier 1. Failures fall back to Tier 1 with a warning."},
+    {"role": "user", "content": "Chunk 4: Unrelated weather note: rain is expected tomorrow in Seattle with strong winds near the coast."},
+    {"role": "user", "content": "Which profiles does contextpress support and is resolution used for rag_doc?"}
+  ]
+}

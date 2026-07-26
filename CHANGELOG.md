@@ -4,6 +4,12 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.7] - 2026-07-26
+
+- **Stabilization Phase 3** — offline chat fixtures under `tests/fixtures/chats/` (8 synthetic threads).
+- Fixture smoke tests: compress, input immutability, preview, ``recommend_preset``.
+- Documents AUDIT C3 (filler ack vs resolution) with a dedicated fixture.
+
 ## [0.5.6] - 2026-07-26
 
 - **Stabilization Phase 2** — low-risk refactors (see [`AUDIT.md`](AUDIT.md)):
