@@ -7,6 +7,7 @@ from typing import Any
 
 import tiktoken
 
+from contextpress.costs import estimate_token_cost
 from contextpress.models import Conversation, Turn
 from contextpress.normalizer import extract_text_for_processing
 
@@ -51,6 +52,11 @@ class CompressionStats:
     token_budget: int | None = None
     dry_run: bool = False
     warnings_emitted: list[str] = field(default_factory=list)
+    # Optional USD estimates (0.6.1+); filled when cost_provider is set or via attach_cost()
+    cost_provider: str | None = None
+    cost_model: str | None = None
+    estimated_input_cost_before_usd: float | None = None
+    estimated_input_cost_after_usd: float | None = None
 
     @property
     def turns_removed(self) -> int:
@@ -65,6 +71,30 @@ class CompressionStats:
         if self.tokens_before <= 0:
             return 0.0
         return round(100.0 * self.tokens_saved / self.tokens_before, 2)
+
+    @property
+    def estimated_cost_saved_usd(self) -> float | None:
+        """Approximate input-USD saved (None if cost was not attached)."""
+        before = self.estimated_input_cost_before_usd
+        after = self.estimated_input_cost_after_usd
+        if before is None or after is None:
+            return None
+        return round(max(0.0, before - after), 8)
+
+    def attach_cost(
+        self,
+        *,
+        provider: str = "openai",
+        model: str | None = "gpt-4o-mini",
+    ) -> CompressionStats:
+        """Fill USD fields from ``tokens_before`` / ``tokens_after``. Returns self."""
+        before = estimate_token_cost(self.tokens_before, provider=provider, model=model)
+        after = estimate_token_cost(self.tokens_after, provider=provider, model=model)
+        self.cost_provider = before.provider
+        self.cost_model = before.model
+        self.estimated_input_cost_before_usd = before.input_cost_usd
+        self.estimated_input_cost_after_usd = after.input_cost_usd
+        return self
 
     def to_dict(self) -> dict[str, Any]:
         """JSON-serializable snapshot of this run."""
@@ -86,6 +116,11 @@ class CompressionStats:
             "token_budget": self.token_budget,
             "dry_run": self.dry_run,
             "warnings_emitted": list(self.warnings_emitted),
+            "cost_provider": self.cost_provider,
+            "cost_model": self.cost_model,
+            "estimated_input_cost_before_usd": self.estimated_input_cost_before_usd,
+            "estimated_input_cost_after_usd": self.estimated_input_cost_after_usd,
+            "estimated_cost_saved_usd": self.estimated_cost_saved_usd,
         }
 
 

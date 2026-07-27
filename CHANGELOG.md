@@ -4,6 +4,13 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.1] - 2026-07-26
+
+- **USD on stats** — ``CompressionStats.attach_cost()`` and optional ``cost_provider`` on
+  ``ContextManager`` / ``compress()`` fill ``estimated_input_cost_*_usd`` and
+  ``estimated_cost_saved_usd`` (included in ``to_dict()``).
+- Opt-in only: without ``cost_provider``, cost fields stay ``None``.
+
 ## [0.6.0] - 2026-07-26
 
 - **`structure` stage** — early Tier 1 compaction: JSON minify, whitespace tighten, consecutive log-line dedupe (stdlib only).

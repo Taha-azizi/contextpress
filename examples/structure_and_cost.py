@@ -18,18 +18,23 @@ messages = [
     {"role": "assistant", "content": "line\nline\nline\nnext"},
 ]
 
-cm = ContextManager(type="agent", model="gpt-4o-mini", compression="medium")
+cm = ContextManager(
+    type="agent",
+    model="gpt-4o-mini",
+    compression="medium",
+    cost_provider="openai",
+)
 before = cm.estimate_tokens(messages)
-before_cost = cm.estimate_cost(messages, provider="openai")
 result = cm.compress(messages, token_budget=None, return_stats=True)
-after_cost = cm.estimate_cost(result.messages, provider="openai")
+stats = result.stats
 
-print("tokens:", before, "->", result.stats.tokens_after)
+print("tokens:", before, "->", stats.tokens_after)
 print(
     "est. input USD:",
-    f"{before_cost.input_cost_usd:.6f}",
+    f"{stats.estimated_input_cost_before_usd:.6f}",
     "->",
-    f"{after_cost.input_cost_usd:.6f}",
+    f"{stats.estimated_input_cost_after_usd:.6f}",
+    f"(saved {stats.estimated_cost_saved_usd:.6f})",
 )
-print("stages:", result.stats.stages_run)
+print("stages:", stats.stages_run)
 print("user content:", result.messages[1]["content"][:80])

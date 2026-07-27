@@ -174,6 +174,17 @@ est = cm.estimate_cost(messages, provider="openai", model="gpt-4o-mini", output_
 print(est.total_cost_usd, est.to_dict())
 ```
 
+**USD on compression stats** (0.6.1+, opt-in):
+
+```python
+cm = ContextManager(type="chat", model="gpt-4o-mini", cost_provider="openai")
+result = cm.compress(messages, token_budget=2000, return_stats=True)
+print(result.stats.estimated_input_cost_before_usd)
+print(result.stats.estimated_input_cost_after_usd)
+print(result.stats.estimated_cost_saved_usd)
+# or attach later: result.stats.attach_cost(provider="anthropic", model="claude-haiku-4-5")
+```
+
 See [`ROADMAP.md`](ROADMAP.md) for positioning vs heavier compression stacks and the 0.6.x plan.
 
 ## Tier 1 vs Tier 2 (classical NLP vs LLM)
