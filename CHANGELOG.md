@@ -4,6 +4,14 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-07-26
+
+- **`structure` stage** — early Tier 1 compaction: JSON minify, whitespace tighten, consecutive log-line dedupe (stdlib only).
+- **`estimate_cost()`** — approximate USD cost from token counts + bundled provider pricing.
+- Presets (low/medium/high) include ``structure``; agent profile uses higher structure aggressiveness.
+- [`ROADMAP.md`](ROADMAP.md) — competitive landscape (ideas only) and 0.6.x plan.
+- Example: `examples/structure_and_cost.py`.
+
 ## [0.5.8] - 2026-07-26
 
 - **Stabilization Phase 4** — fixture-driven fixes:

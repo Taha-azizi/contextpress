@@ -12,6 +12,7 @@ class StageConfig:
 @dataclass
 class Profile:
     name: str
+    structure: StageConfig
     filler: StageConfig
     repetition: StageConfig
     resolution: StageConfig
@@ -23,6 +24,7 @@ class Profile:
 PROFILES: dict[str, Profile] = {
     "chat": Profile(
         name="chat",
+        structure=StageConfig(enabled=True, aggressiveness=0.45),
         filler=StageConfig(enabled=True, aggressiveness=0.7),
         repetition=StageConfig(enabled=True, aggressiveness=0.6),
         resolution=StageConfig(enabled=True, aggressiveness=0.8),
@@ -32,6 +34,7 @@ PROFILES: dict[str, Profile] = {
     ),
     "rag_doc": Profile(
         name="rag_doc",
+        structure=StageConfig(enabled=True, aggressiveness=0.5),
         filler=StageConfig(enabled=True, aggressiveness=0.5),
         repetition=StageConfig(enabled=True, aggressiveness=0.8),
         resolution=StageConfig(enabled=False),  # no resolution in documents
@@ -41,6 +44,7 @@ PROFILES: dict[str, Profile] = {
     ),
     "agent": Profile(
         name="agent",
+        structure=StageConfig(enabled=True, aggressiveness=0.75),
         filler=StageConfig(enabled=True, aggressiveness=0.4),
         repetition=StageConfig(enabled=True, aggressiveness=0.7),
         resolution=StageConfig(enabled=True, aggressiveness=0.9),  # task completion detection

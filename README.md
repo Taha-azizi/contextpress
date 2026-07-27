@@ -160,17 +160,27 @@ Runnable agent example: [`examples/agent_pipeline.py`](examples/agent_pipeline.p
 
 ## Pipeline stages
 
-1. **Filler** — Removes low-semantic filler words and (in chat/agent) drops acknowledgement-only assistant turns.
-2. **Repetition** — TF-IDF cosine similarity; keeps the more recent of similar turns.
-3. **Resolution** — Collapses agreed threads into a single `RESOLVED:` synthetic system turn (chat/agent only).
-4. **Recency** — Extractively compresses older turns (or low-relevance chunks in `rag_doc`) while preserving the latest context.
-5. **Budget** — Enforces a hard token limit with `tiktoken`, removing oldest turns first while protecting system prompts and recent turns.
+1. **Structure** (0.6+) — Minifies JSON blobs and tightens whitespace / repeated log lines inside non-system turns (stdlib only; great for agent tool payloads).
+2. **Filler** — Removes low-semantic filler words and (in chat/agent) drops acknowledgement-only assistant turns.
+3. **Repetition** — TF-IDF cosine similarity; keeps the more recent of similar turns.
+4. **Resolution** — Collapses agreed threads into a single `RESOLVED:` synthetic system turn (chat/agent only).
+5. **Recency** — Extractively compresses older turns (or low-relevance chunks in `rag_doc`) while preserving the latest context.
+6. **Budget** — Enforces a hard token limit with `tiktoken`, removing oldest turns first while protecting system prompts and recent turns.
+
+**Cost estimate** (0.6+, approximate list prices for planning):
+
+```python
+est = cm.estimate_cost(messages, provider="openai", model="gpt-4o-mini", output_tokens=200)
+print(est.total_cost_usd, est.to_dict())
+```
+
+See [`ROADMAP.md`](ROADMAP.md) for positioning vs heavier compression stacks and the 0.6.x plan.
 
 ## Tier 1 vs Tier 2 (classical NLP vs LLM)
 
 | | **Tier 1** (always available) | **Tier 2** (optional) |
 |---|-------------------------------|------------------------|
-| **What** | Pipeline stages: filler, repetition, resolution, recency, budget | `LLMBackend`: semantic `deduplicate` + `summarize` after Tier 1 |
+| **What** | Pipeline stages: structure, filler, repetition, resolution, recency, budget | `LLMBackend`: semantic `deduplicate` + `summarize` after Tier 1 |
 | **Where in code** | `contextpress/strategies/`, orchestrated by `pipeline.py` | `contextpress/llm/` (`base.py`, `adapters.py`) |
 | **Techniques** | Rules, TF–IDF, cosine similarity, NLTK, Sumy extractive summarization, tiktoken | Your provider’s chat/completions API (you supply the client) |
 | **API key** | None | Required for your chosen provider (OpenAI, Anthropic, …) |

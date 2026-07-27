@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "contextpress"
-version = "0.5.8"
+version = "0.6.0"
 description = "Deterministic context compression for LLM chat, RAG, and agent pipelines"
 readme = "README.md"
 license = { file = "LICENSE" }
@@ -59,7 +59,7 @@ packages = ["contextpress"]
 "contextpress/py.typed" = "contextpress/py.typed"
 
 [tool.hatch.build.targets.sdist]
-include = ["/contextpress", "/tests", "/examples", "/README.md", "/LICENSE", "/NOTICE", "/CHANGELOG.md", "/CITATION.cff", "/CONTRIBUTING.md", "/AUDIT.md", "/AGENTS.md"]
+include = ["/contextpress", "/tests", "/examples", "/README.md", "/LICENSE", "/NOTICE", "/CHANGELOG.md", "/CITATION.cff", "/CONTRIBUTING.md", "/AUDIT.md", "/AGENTS.md", "/ROADMAP.md"]
 
 [tool.black]
 line-length = 100

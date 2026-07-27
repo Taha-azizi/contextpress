@@ -266,7 +266,7 @@ def test_preset_low_enables_filler_and_repetition_only():
         disable=None,
         token_budget=None,
     )
-    assert p.filler.enabled and p.repetition.enabled
+    assert p.structure.enabled and p.filler.enabled and p.repetition.enabled
     assert not p.resolution.enabled and not p.recency.enabled and not p.budget.enabled
 
 
@@ -281,7 +281,7 @@ def test_preset_medium_adds_recency():
         disable=None,
         token_budget=None,
     )
-    assert p.filler.enabled and p.repetition.enabled and p.recency.enabled
+    assert p.structure.enabled and p.filler.enabled and p.repetition.enabled and p.recency.enabled
     assert not p.resolution.enabled
 
 
@@ -297,7 +297,7 @@ def test_preset_high_respects_rag_doc_resolution_off():
         token_budget=None,
     )
     assert not p.resolution.enabled
-    assert p.filler.enabled and p.recency.enabled
+    assert p.structure.enabled and p.filler.enabled and p.recency.enabled
 
 
 def test_explicit_stages_list():
@@ -312,7 +312,7 @@ def test_explicit_stages_list():
         token_budget=100,
     )
     assert p.filler.enabled and p.budget.enabled
-    assert not p.repetition.enabled
+    assert not p.structure.enabled and not p.repetition.enabled
 
 
 def test_disable_after_preset():

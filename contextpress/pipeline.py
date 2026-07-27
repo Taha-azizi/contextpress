@@ -41,6 +41,7 @@ from contextpress.strategies.filler import FillerStrategy
 from contextpress.strategies.recency import RecencyStrategy
 from contextpress.strategies.repetition import RepetitionStrategy
 from contextpress.strategies.resolution import ResolutionStrategy
+from contextpress.strategies.structure import StructureStrategy
 
 if TYPE_CHECKING:
     from contextpress.llm.base import LLMBackend
@@ -165,6 +166,8 @@ class Pipeline:
                 conv_type=self.profile.name,
                 role_aware=self.profile.role_aware,
             )
+        if name == "structure":
+            return StructureStrategy(**kwargs)
         if name == "filler":
             return FillerStrategy(**kwargs)
         if name == "repetition":

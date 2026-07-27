@@ -6,6 +6,7 @@ import warnings
 from typing import TYPE_CHECKING, Any
 
 from contextpress.compression import apply_stage_selection, normalize_compression_level
+from contextpress.costs import CostEstimate, estimate_token_cost
 from contextpress.normalizer import denormalize_output, normalize_messages
 from contextpress.pipeline import VALID_LLM_MODES, Pipeline, clone_conversation
 from contextpress.profiles import PROFILES, Profile, StageConfig
@@ -67,6 +68,24 @@ class ContextManager:
         """Count tokens for ``messages`` using the same encoding as the budget stage."""
         conv, _ = normalize_messages(messages, context_type=self._type)
         return count_conversation_tokens(conv, model if model is not None else self.model)
+
+    def estimate_cost(
+        self,
+        messages: Any,
+        *,
+        provider: str = "openai",
+        model: str | None = None,
+        output_tokens: int = 0,
+    ) -> CostEstimate:
+        """Approximate USD cost for ``messages`` (bundled list prices; for planning)."""
+        tok_model = model if model is not None else self.model
+        tokens = self.estimate_tokens(messages, model=tok_model)
+        return estimate_token_cost(
+            tokens,
+            provider=provider,
+            model=tok_model or "gpt-4o-mini",
+            output_tokens=output_tokens,
+        )
 
     def fits_budget(
         self,
