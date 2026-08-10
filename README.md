@@ -185,6 +185,16 @@ print(result.stats.estimated_cost_saved_usd)
 # or attach later: result.stats.attach_cost(provider="anthropic", model="claude-haiku-4-5")
 ```
 
+**Readable savings report** (0.6.2+):
+
+```python
+result = cm.compress(messages, token_budget=2000, return_stats=True)
+print(result.summary())
+# contextpress (chat, medium): 12 -> 8 turns, 842 -> 410 tokens (51.3% saved)
+# stages: structure, filler, repetition, budget
+# est. input cost: $0.000126 -> $0.000061 (saved $0.000065)   # when cost_provider set
+```
+
 See [`ROADMAP.md`](ROADMAP.md) for positioning vs heavier compression stacks and the 0.6.x plan.
 
 ## Tier 1 vs Tier 2 (classical NLP vs LLM)

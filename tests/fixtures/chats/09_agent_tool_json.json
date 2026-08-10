@@ -1,0 +1,22 @@
+{
+  "id": "09_agent_tool_json",
+  "type": "agent",
+  "source": "synthetic (large pretty-printed tool JSON)",
+  "messages": [
+    {"role": "system", "content": "You are a data agent with search and fetch tools."},
+    {"role": "user", "content": "Find recent deploy events for api-v2 on staging."},
+    {
+      "role": "assistant",
+      "content": "Searching deploy logs <tool_call> search_deploys(service=api-v2, env=staging, limit=20)"
+    },
+    {
+      "role": "user",
+      "content": "Tool result:\n{\n  \"service\": \"api-v2\",\n  \"environment\": \"staging\",\n  \"events\": [\n    {\n      \"id\": \"evt-001\",\n      \"version\": \"2.4.1\",\n      \"status\": \"healthy\",\n      \"timestamp\": \"2026-07-25T14:22:11Z\",\n      \"details\": {\n        \"replicas\": 3,\n        \"region\": \"us-east-1\",\n        \"notes\": \"Rolling update completed without errors\"\n      }\n    },\n    {\n      \"id\": \"evt-002\",\n      \"version\": \"2.4.0\",\n      \"status\": \"superseded\",\n      \"timestamp\": \"2026-07-24T09:10:03Z\",\n      \"details\": {\n        \"replicas\": 3,\n        \"region\": \"us-east-1\",\n        \"notes\": \"Previous stable release\"\n      }\n    },\n    {\n      \"id\": \"evt-003\",\n      \"version\": \"2.3.9\",\n      \"status\": \"rolled_back\",\n      \"timestamp\": \"2026-07-22T18:44:55Z\",\n      \"details\": {\n        \"replicas\": 2,\n        \"region\": \"us-east-1\",\n        \"notes\": \"Rollback after health check failure on pod-2\"\n      }\n    }\n  ],\n  \"meta\": {\n    \"query_ms\": 42,\n    \"truncated\": false,\n    \"source\": \"deploy-index\"\n  }\n}"
+    },
+    {
+      "role": "assistant",
+      "content": "api-v2 staging is on 2.4.1 (healthy). Prior release 2.4.0 was superseded yesterday."
+    },
+    {"role": "user", "content": "Any blockers for prod?"}
+  ]
+}

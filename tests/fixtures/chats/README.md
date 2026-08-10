@@ -13,3 +13,6 @@ No network required — used by `tests/test_fixture_chats.py`.
 | `06_rag_chunks.json` | rag_doc | Chunk + query |
 | `07_short_stable.json` | chat | Minimal change |
 | `08_mixed_ack_resolution.json` | chat | Ack vs resolution (AUDIT C3) |
+| `09_agent_tool_json.json` | agent | Large pretty-printed tool JSON |
+| `10_agent_repeated_logs.json` | agent | Repeated log lines in tool output |
+| `11_agent_mixed.json` | agent | Tool call + result + follow-up thread |

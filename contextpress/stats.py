@@ -96,6 +96,30 @@ class CompressionStats:
         self.estimated_input_cost_after_usd = after.input_cost_usd
         return self
 
+    def summary(self) -> str:
+        """One-line human-readable report for logs, notebooks, and demos."""
+        level = self.compression_level or "default"
+        dry = " [dry-run]" if self.dry_run else ""
+        lines = [
+            (
+                f"contextpress ({self.context_type}, {level}){dry}: "
+                f"{self.turns_before} -> {self.turns_after} turns, "
+                f"{self.tokens_before} -> {self.tokens_after} tokens "
+                f"({self.token_savings_pct}% saved)"
+            )
+        ]
+        if self.stages_run:
+            lines.append(f"stages: {', '.join(self.stages_run)}")
+        saved = self.estimated_cost_saved_usd
+        before_usd = self.estimated_input_cost_before_usd
+        after_usd = self.estimated_input_cost_after_usd
+        if saved is not None and before_usd is not None and after_usd is not None:
+            lines.append(
+                "est. input cost: "
+                f"${before_usd:.6f} -> ${after_usd:.6f} (saved ${saved:.6f})"
+            )
+        return "\n".join(lines)
+
     def to_dict(self) -> dict[str, Any]:
         """JSON-serializable snapshot of this run."""
         return {
@@ -130,6 +154,10 @@ class CompressionResult:
 
     messages: Any
     stats: CompressionStats
+
+    def summary(self) -> str:
+        """Human-readable report for this compression run."""
+        return self.stats.summary()
 
     def to_dict(self, *, include_messages: bool = True) -> dict[str, Any]:
         data = {"stats": self.stats.to_dict()}

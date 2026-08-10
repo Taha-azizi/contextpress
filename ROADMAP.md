@@ -38,7 +38,7 @@ deterministic Tier‑1 NLP for chat / RAG / agent **message histories**, with op
 | Version | Focus |
 |---------|--------|
 | **0.6.0** | `structure` stage + `estimate_cost()` + this roadmap — shipped |
-| **0.6.1** | Wire estimated USD into `CompressionStats` / reports — designed locally |
-| **0.6.2** | Agent-oriented fixtures for JSON/tool payloads; polish |
+| **0.6.1** | Wire estimated USD into `CompressionStats` / reports — shipped |
+| **0.6.2** | Agent-oriented fixtures for JSON/tool payloads; `summary()` report — shipped |
 
 Stay classical-NLP-first; keep optional LLM extras optional.

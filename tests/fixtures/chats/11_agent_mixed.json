@@ -1,0 +1,32 @@
+{
+  "id": "11_agent_mixed",
+  "type": "agent",
+  "source": "synthetic (mixed user, tool call, tool result, follow-up)",
+  "messages": [
+    {"role": "system", "content": "You are an ops agent with deploy and status tools."},
+    {"role": "user", "content": "We've decided on using the new pipeline for api-v2 staging deploy."},
+    {
+      "role": "assistant",
+      "content": "Acknowledged. Checking current status <tool_call> get_deploy_status(api-v2, staging)"
+    },
+    {
+      "role": "user",
+      "content": "Tool result: {\"service\":\"api-v2\",\"env\":\"staging\",\"version\":\"2.4.1\",\"healthy\":true,\"pods\":[{\"name\":\"api-v2-0\",\"ready\":true},{\"name\":\"api-v2-1\",\"ready\":true}]}"
+    },
+    {
+      "role": "assistant",
+      "content": "Staging is healthy on 2.4.1. I can schedule the new pipeline deploy when you confirm."
+    },
+    {"role": "user", "content": "Go ahead and schedule it for tonight."},
+    {
+      "role": "assistant",
+      "content": "Scheduling deploy <tool_call> schedule_deploy(api-v2, staging, pipeline=new, window=tonight)"
+    },
+    {
+      "role": "user",
+      "content": "Tool result:\n{\n  \"scheduled\": true,\n  \"window\": \"2026-07-26T02:00:00Z\",\n  \"pipeline\": \"new\",\n  \"ticket\": \"DEP-4821\"\n}"
+    },
+    {"role": "assistant", "content": "Deploy DEP-4821 is scheduled for tonight via the new pipeline."},
+    {"role": "user", "content": "Thanks. Basically that's all I needed."}
+  ]
+}

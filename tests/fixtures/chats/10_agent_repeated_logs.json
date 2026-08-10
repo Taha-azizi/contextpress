@@ -1,0 +1,22 @@
+{
+  "id": "10_agent_repeated_logs",
+  "type": "agent",
+  "source": "synthetic (agent trace with repeated log lines)",
+  "messages": [
+    {"role": "system", "content": "You are a debugging agent."},
+    {"role": "user", "content": "Why is checkout failing on staging?"},
+    {
+      "role": "assistant",
+      "content": "Pulling recent error logs <tool_call> fetch_logs(service=checkout, env=staging, level=error)"
+    },
+    {
+      "role": "user",
+      "content": "Tool result:\nERROR checkout: payment gateway timeout after 30s\nERROR checkout: payment gateway timeout after 30s\nERROR checkout: payment gateway timeout after 30s\nERROR checkout: payment gateway timeout after 30s\nERROR checkout: payment gateway timeout after 30s\nERROR checkout: payment gateway timeout after 30s\nERROR checkout: payment gateway timeout after 30s\nERROR checkout: payment gateway timeout after 30s\nWARN checkout: retry attempt 3/3\nWARN checkout: retry attempt 3/3\nWARN checkout: retry attempt 3/3\nINFO checkout: circuit breaker opened\nINFO checkout: circuit breaker opened"
+    },
+    {
+      "role": "assistant",
+      "content": "Looks like repeated gateway timeouts triggered the circuit breaker."
+    },
+    {"role": "user", "content": "Summarize the root cause in one sentence."}
+  ]
+}
