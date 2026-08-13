@@ -195,6 +195,20 @@ print(result.summary())
 # est. input cost: $0.000126 -> $0.000061 (saved $0.000065)   # when cost_provider set
 ```
 
+**Assumed completion tokens** (0.6.3+, opt-in; output cost is unchanged by compression):
+
+```python
+cm = ContextManager(type="chat", model="gpt-4o-mini", cost_provider="openai", cost_output_tokens=200)
+result = cm.compress(messages, token_budget=2000, return_stats=True)
+print(result.summary())
+# ...
+# est. output cost: $0.000120 (200 tokens)
+# est. total: $0.000246 -> $0.000181
+```
+
+LangChain-style message objects (``.type`` / ``.content``) round-trip through ``compress()``;
+dropped turns keep their original object types. See `examples/langchain_roundtrip.py`.
+
 See [`ROADMAP.md`](ROADMAP.md) for positioning vs heavier compression stacks and the 0.6.x plan.
 
 ## Tier 1 vs Tier 2 (classical NLP vs LLM)

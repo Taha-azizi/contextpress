@@ -247,15 +247,14 @@ def denormalize_output(conversation: Conversation, ctx: dict[str, Any]) -> Any:
         return out
 
     if fmt == "langchain":
-        # Reconstruct LangChain objects by copying original and setting content
-        lc_objs = ctx.get("lc_objects", [])
-        if not lc_objs:
-            return []
+        # Reconstruct LangChain objects from the turn's original message, not list index
+        # (dropped turns would otherwise remap remaining content onto the wrong objects).
         result = []
-        for i, t in enumerate(turns):
-            if i < len(lc_objs):
-                obj = copy.copy(lc_objs[i])
-                text = _turn_to_plain_text(t)
+        for t in turns:
+            orig = t.metadata.get("_lc_original") or t.metadata.get("_lc_obj")
+            text = _turn_to_plain_text(t)
+            if orig is not None:
+                obj = copy.copy(orig)
                 if hasattr(obj, "content"):
                     try:
                         obj.content = text
@@ -270,7 +269,7 @@ def denormalize_output(conversation: Conversation, ctx: dict[str, Any]) -> Any:
                         self.type = role
                         self.content = content
 
-                result.append(_Msg(t.role, _turn_to_plain_text(t)))
+                result.append(_Msg(t.role, text))
         return result
 
     # dict_list

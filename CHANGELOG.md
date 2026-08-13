@@ -4,6 +4,15 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.3] - 2026-08-12
+
+- **LangChain round-trip** — ``compress()`` maps remaining turns back onto their original
+  message objects (not list index), so dropped turns no longer remap roles/content.
+- **``output_tokens`` on cost stats** — ``attach_cost(output_tokens=...)``,
+  ``compress(..., output_tokens=...)``, and ``ContextManager(cost_output_tokens=...)``
+  add assumed completion USD; ``summary()`` prints output + total when set.
+- Example: `examples/langchain_roundtrip.py`.
+
 ## [0.6.2] - 2026-07-27
 
 - **Agent-oriented fixtures** — three offline agent threads under `tests/fixtures/chats/`

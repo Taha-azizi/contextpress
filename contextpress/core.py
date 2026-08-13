@@ -48,6 +48,7 @@ class ContextManager:
         llm_max_summary_tokens: int = 2048,
         llm_mode: str = "replace_all",
         cost_provider: str | None = None,
+        cost_output_tokens: int = 0,
     ):
         if type not in PROFILES:
             raise ValueError(f"unknown context type {type!r}")
@@ -65,6 +66,7 @@ class ContextManager:
         self.llm_mode = llm_mode
         # When set, compress(..., return_stats=True) attaches USD fields on stats.
         self.cost_provider = cost_provider
+        self.cost_output_tokens = int(cost_output_tokens)
         self._custom_stages: dict[str, StageConfig] = {}
 
     def estimate_tokens(self, messages: Any, *, model: str | None = None) -> int:
@@ -185,6 +187,7 @@ class ContextManager:
         return_stats: bool = False,
         dry_run: bool = False,
         cost_provider: str | None = None,
+        output_tokens: int | None = None,
     ) -> Any | CompressionResult:
         """Run the pipeline; return value matches input shape (dict list, tuples, strings, etc.).
 
@@ -193,6 +196,8 @@ class ContextManager:
         With ``dry_run=True``, runs Tier 1 only (no LLM calls) and returns the original messages.
         When ``cost_provider`` (or ``self.cost_provider``) is set and stats are returned,
         ``stats`` includes approximate input USD before/after compression.
+        ``output_tokens`` (or ``self.cost_output_tokens``) adds an assumed completion cost
+        that is unchanged by compression.
         """
         if dry_run:
             return_stats = True
@@ -228,7 +233,14 @@ class ContextManager:
             stats.warnings_emitted = captured
             prov = cost_provider if cost_provider is not None else self.cost_provider
             if prov is not None:
-                stats.attach_cost(provider=prov, model=self.model or "gpt-4o-mini")
+                out_tok = (
+                    output_tokens if output_tokens is not None else self.cost_output_tokens
+                )
+                stats.attach_cost(
+                    provider=prov,
+                    model=self.model or "gpt-4o-mini",
+                    output_tokens=out_tok,
+                )
         if dry_run:
             messages_out = denormalize_output(clone_conversation(conv), ctx)
         else:
@@ -249,6 +261,7 @@ class ContextManager:
         return_stats: bool = False,
         dry_run: bool = False,
         cost_provider: str | None = None,
+        output_tokens: int | None = None,
     ) -> list[Any] | list[CompressionResult]:
         """Run ``compress()`` on each conversation in ``conversations``."""
         if not isinstance(conversations, list):
@@ -263,6 +276,7 @@ class ContextManager:
                 return_stats=return_stats,
                 dry_run=dry_run,
                 cost_provider=cost_provider,
+                output_tokens=output_tokens,
             )
             for messages in conversations
         ]
@@ -278,6 +292,7 @@ class ContextManager:
         return_stats: bool = False,
         dry_run: bool = False,
         cost_provider: str | None = None,
+        output_tokens: int | None = None,
     ) -> Any | CompressionResult:
         """Async wrapper around ``compress()`` (runs in a worker thread)."""
         return await asyncio.to_thread(
@@ -290,6 +305,7 @@ class ContextManager:
             return_stats=return_stats,
             dry_run=dry_run,
             cost_provider=cost_provider,
+            output_tokens=output_tokens,
         )
 
     def set_compression(self, compression: str) -> None:

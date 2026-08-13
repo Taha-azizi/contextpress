@@ -57,6 +57,11 @@ class CompressionStats:
     cost_model: str | None = None
     estimated_input_cost_before_usd: float | None = None
     estimated_input_cost_after_usd: float | None = None
+    # Optional completion-side estimate (0.6.3+); same before/after (compression is input-only)
+    estimated_output_tokens: int | None = None
+    estimated_output_cost_usd: float | None = None
+    estimated_total_cost_before_usd: float | None = None
+    estimated_total_cost_after_usd: float | None = None
 
     @property
     def turns_removed(self) -> int:
@@ -86,14 +91,32 @@ class CompressionStats:
         *,
         provider: str = "openai",
         model: str | None = "gpt-4o-mini",
+        output_tokens: int = 0,
     ) -> CompressionStats:
-        """Fill USD fields from ``tokens_before`` / ``tokens_after``. Returns self."""
-        before = estimate_token_cost(self.tokens_before, provider=provider, model=model)
-        after = estimate_token_cost(self.tokens_after, provider=provider, model=model)
+        """Fill USD fields from ``tokens_before`` / ``tokens_after``. Returns self.
+
+        ``output_tokens`` is an assumed completion size (unchanged by compression).
+        """
+        before = estimate_token_cost(
+            self.tokens_before, provider=provider, model=model, output_tokens=output_tokens
+        )
+        after = estimate_token_cost(
+            self.tokens_after, provider=provider, model=model, output_tokens=output_tokens
+        )
         self.cost_provider = before.provider
         self.cost_model = before.model
         self.estimated_input_cost_before_usd = before.input_cost_usd
         self.estimated_input_cost_after_usd = after.input_cost_usd
+        if output_tokens > 0:
+            self.estimated_output_tokens = after.output_tokens
+            self.estimated_output_cost_usd = after.output_cost_usd
+            self.estimated_total_cost_before_usd = before.total_cost_usd
+            self.estimated_total_cost_after_usd = after.total_cost_usd
+        else:
+            self.estimated_output_tokens = None
+            self.estimated_output_cost_usd = None
+            self.estimated_total_cost_before_usd = None
+            self.estimated_total_cost_after_usd = None
         return self
 
     def summary(self) -> str:
@@ -118,6 +141,14 @@ class CompressionStats:
                 "est. input cost: "
                 f"${before_usd:.6f} -> ${after_usd:.6f} (saved ${saved:.6f})"
             )
+        out_usd = self.estimated_output_cost_usd
+        out_tok = self.estimated_output_tokens
+        if out_usd is not None and out_tok is not None:
+            lines.append(f"est. output cost: ${out_usd:.6f} ({out_tok} tokens)")
+        total_before = self.estimated_total_cost_before_usd
+        total_after = self.estimated_total_cost_after_usd
+        if total_before is not None and total_after is not None:
+            lines.append(f"est. total: ${total_before:.6f} -> ${total_after:.6f}")
         return "\n".join(lines)
 
     def to_dict(self) -> dict[str, Any]:
@@ -145,6 +176,10 @@ class CompressionStats:
             "estimated_input_cost_before_usd": self.estimated_input_cost_before_usd,
             "estimated_input_cost_after_usd": self.estimated_input_cost_after_usd,
             "estimated_cost_saved_usd": self.estimated_cost_saved_usd,
+            "estimated_output_tokens": self.estimated_output_tokens,
+            "estimated_output_cost_usd": self.estimated_output_cost_usd,
+            "estimated_total_cost_before_usd": self.estimated_total_cost_before_usd,
+            "estimated_total_cost_after_usd": self.estimated_total_cost_after_usd,
         }
 
 
