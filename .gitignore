@@ -32,3 +32,7 @@ Thumbs.db
 
 # Secrets (never commit)
 .env
+
+# Draft articles / writing prompts (local only)
+articles/STYLE_PROMPT_taha_azizi.md
+articles/introducing-contextpress.md
