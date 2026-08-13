@@ -95,7 +95,11 @@ def test_agent_repeated_logs_dedupes_lines():
     cm = ContextManager(type="agent", compression="medium")
     result = cm.compress(data["messages"], token_budget=None, return_stats=True)
     assert "structure" in result.stats.stages_run
-    tool_turn = next(m for m in result.messages if m.get("role") == "user" and "Tool result" in str(m.get("content", "")))
+    tool_turn = next(
+        m
+        for m in result.messages
+        if m.get("role") == "user" and "Tool result" in str(m.get("content", ""))
+    )
     content = str(tool_turn["content"])
     assert content.count("payment gateway timeout") == 1
 
