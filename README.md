@@ -3,6 +3,8 @@
 Deterministic context compression for LLM chat, RAG, and agent pipelines.
 Created and maintained by **[Taha Azizi](https://github.com/Taha-azizi)**.
 
+**Write-up:** [Introducing contextpress](https://pub.towardsai.net/introducing-contextpress-the-python-library-that-refactors-your-llm-context-c57965617edb) — Towards AI (Medium)
+
 ---
 
 ## Project Status
