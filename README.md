@@ -150,7 +150,7 @@ That script builds a long history and a tight `token_budget` so you can see turn
 
 - **chat** — Typical back-and-forth dialogue. Filler removal, repetition deduplication, resolution collapsing, recency weighting, and token budgets are tuned for conversational flow.
 - **rag_doc** — Document chunks or RAG context. Resolution is off; repetition compares all chunks; recency uses relevance to the latest user query instead of chat recency.
-- **agent** — Tool-using or task-oriented threads. Resolution can trigger on a single high-confidence completion signal; filler rules preserve tool-related turns when markers are present.
+- **agent** — Tool-using or task-oriented threads. Resolution can trigger on a single high-confidence completion signal; filler rules preserve tool-related turns when markers are present. OpenAI Chat Completions ``tool_calls`` / ``role: tool`` messages are first-class (0.6.4+).
 
 ```python
 ContextManager(type="chat")
@@ -159,6 +159,7 @@ ContextManager(type="agent")
 ```
 
 Runnable agent example: [`examples/agent_pipeline.py`](examples/agent_pipeline.py).
+OpenAI tools example: [`examples/openai_tools_compress.py`](examples/openai_tools_compress.py).
 
 ## Pipeline stages
 
@@ -167,7 +168,7 @@ Runnable agent example: [`examples/agent_pipeline.py`](examples/agent_pipeline.p
 3. **Repetition** — TF-IDF cosine similarity; keeps the more recent of similar turns.
 4. **Resolution** — Collapses agreed threads into a single `RESOLVED:` synthetic system turn (chat/agent only).
 5. **Recency** — Extractively compresses older turns (or low-relevance chunks in `rag_doc`) while preserving the latest context.
-6. **Budget** — Enforces a hard token limit with `tiktoken`, removing oldest turns first while protecting system prompts and recent turns.
+6. **Budget** — Enforces a hard token limit with `tiktoken`, removing oldest turns first while protecting system prompts and recent turns. Assistant ``tool_calls`` and matching ``role: tool`` results are dropped together (0.6.4+).
 
 **Cost estimate** (0.6+, approximate list prices for planning):
 

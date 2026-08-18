@@ -6,6 +6,7 @@ import re
 from contextpress.models import Conversation, Turn
 from contextpress.normalizer import apply_text_to_turn, extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
+from contextpress.tools import has_tool_marker
 
 # Curated lists — longer phrases first for safe replacement order
 FILLER_PHRASES = [
@@ -69,16 +70,6 @@ ACKNOWLEDGEMENT_PHRASES = [
     "thanks for clarifying",
     "thank you for that",
 ]
-
-_TOOL_MARKERS = ("tool_calls", "tool_call", "tool_use", "tool_result", "<tool", "[tool")
-
-
-def _has_tool_marker(turn: Turn) -> bool:
-    meta = turn.metadata or {}
-    if any(k in meta for k in ("tool_calls", "tool_call", "tool_use", "tool_result")):
-        return True
-    text = extract_text_for_processing(turn).lower()
-    return any(m in text for m in _TOOL_MARKERS)
 
 
 def _build_filler_pattern() -> re.Pattern[str]:
@@ -155,7 +146,7 @@ class FillerStrategy(BaseStrategy):
                     new_turns.append(nt)
                 continue
 
-            if self.conv_type == "agent" and _has_tool_marker(turn):
+            if has_tool_marker(turn):
                 new_turns.append(copy.deepcopy(turn))
                 continue
 

@@ -41,5 +41,6 @@ deterministic Tier‑1 NLP for chat / RAG / agent **message histories**, with op
 | **0.6.1** | Wire estimated USD into `CompressionStats` / reports — shipped |
 | **0.6.2** | Agent-oriented fixtures for JSON/tool payloads; `summary()` report — shipped |
 | **0.6.3** | LangChain compress round-trip; `output_tokens` on cost stats / `summary()` — shipped |
+| **0.6.4** | OpenAI `tool_calls` / `role=tool` round-trip, JSON minify, budget pair integrity — shipped |
 
 Stay classical-NLP-first; keep optional LLM extras optional.

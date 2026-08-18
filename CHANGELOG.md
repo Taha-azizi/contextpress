@@ -4,6 +4,16 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.4] - 2026-08-18
+
+- **OpenAI tool messages** — ``role: tool`` / ``function`` are valid; ``tool_calls``,
+  ``tool_call_id``, and ``name`` round-trip on dict messages.
+- Structure minifies JSON in ``tool_calls[].function.arguments`` and tool-result content.
+- Filler never drops empty assistant turns that only carry ``tool_calls``.
+- Budget removes an assistant ``tool_calls`` turn together with matching ``role=tool``
+  results (no orphan tool messages).
+- Example: `examples/openai_tools_compress.py`.
+
 ## [0.6.3] - 2026-08-12
 
 - **LangChain round-trip** — ``compress()`` maps remaining turns back onto their original

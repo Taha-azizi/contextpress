@@ -10,6 +10,7 @@ import tiktoken
 from contextpress.costs import estimate_token_cost
 from contextpress.models import Conversation, Turn
 from contextpress.normalizer import extract_text_for_processing
+from contextpress.tools import tool_payload_text
 
 
 def get_encoding(model: str | None) -> tiktoken.Encoding:
@@ -26,6 +27,9 @@ def count_turn_tokens(turn: Turn, encoding: tiktoken.Encoding) -> int:
         body = turn.content
     else:
         body = extract_text_for_processing(turn)
+    extra = tool_payload_text(turn)
+    if extra:
+        body = f"{body}\n{extra}" if body else extra
     return len(encoding.encode(f"{turn.role}\n{body}"))
 
 

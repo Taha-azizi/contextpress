@@ -9,6 +9,7 @@ import re
 from contextpress.models import Conversation, Turn
 from contextpress.normalizer import apply_text_to_turn, extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
+from contextpress.tools import minify_tool_fields
 
 _CODE_FENCE = re.compile(r"(```[\s\S]*?```)", re.MULTILINE)
 _MULTI_BLANK = re.compile(r"\n{3,}")
@@ -85,9 +86,10 @@ class StructureStrategy(BaseStrategy):
             text = extract_text_for_processing(turn)
             compacted = compact_structure_text(text, aggressiveness=self.aggressiveness)
             if compacted != text:
-                new_turns.append(apply_text_to_turn(turn, compacted))
+                nt = apply_text_to_turn(turn, compacted)
             else:
-                new_turns.append(copy.deepcopy(turn))
+                nt = copy.deepcopy(turn)
+            new_turns.append(minify_tool_fields(nt))
         return Conversation(
             turns=new_turns,
             type=conversation.type,

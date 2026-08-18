@@ -8,6 +8,7 @@ import tiktoken
 from contextpress.models import Conversation, Turn
 from contextpress.stats import count_turn_tokens, get_encoding
 from contextpress.strategies.base import BaseStrategy
+from contextpress.tools import tool_group_indices
 
 
 def _truncate_system_turn(turn: Turn, encoding: tiktoken.Encoding, max_tokens: int) -> Turn:
@@ -73,9 +74,17 @@ class BudgetStrategy(BaseStrategy):
             keep = min(2, len(ns_positions))
             protected = set(ns_positions[-keep:]) if keep else set()
             removable = [i for i in ns_positions if i not in protected]
-            if removable:
-                turns.pop(removable[0])
-                n_removed += 1
+            group: list[int] | None = None
+            for idx in removable:
+                candidate = tool_group_indices(turns, idx)
+                if any(g in protected for g in candidate):
+                    continue
+                group = candidate
+                break
+            if group is not None:
+                for g in sorted(group, reverse=True):
+                    turns.pop(g)
+                    n_removed += 1
                 continue
 
             # Last resort: truncate system (see behavior contract note on invariant 1)

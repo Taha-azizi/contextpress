@@ -25,7 +25,7 @@ class Turn:
     This is the canonical unit the entire pipeline operates on.
     """
 
-    role: str  # "user" | "assistant" | "system"
+    role: str  # "user" | "assistant" | "system" | "tool" | "function"
     content: str | list[ContentBlock]  # string for simple, list for multimodal
     timestamp: datetime | None = None
     metadata: dict[str, Any] = field(default_factory=dict)

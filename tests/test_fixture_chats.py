@@ -58,7 +58,7 @@ def test_fixture_recommend_preset(path: Path):
 
 
 def test_fixture_catalog_not_empty():
-    assert len(FIXTURES) >= 11
+    assert len(FIXTURES) >= 12
 
 
 def test_c3_ack_may_weaken_resolution_signal():

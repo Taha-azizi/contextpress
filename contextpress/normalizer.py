@@ -12,11 +12,14 @@ from typing import Any
 
 from contextpress.models import ContentBlock, Conversation, Turn
 
-_VALID_ROLES = frozenset({"user", "assistant", "system"})
+_VALID_ROLES = frozenset({"user", "assistant", "system", "tool", "function"})
+_TOOL_COPY_KEYS = ("tool_calls", "tool_call_id", "name")
 _LC_TYPE_MAP = {
     "human": "user",
     "ai": "assistant",
     "system": "system",
+    "tool": "tool",
+    "function": "function",
 }
 
 
@@ -201,6 +204,9 @@ def normalize_messages(
             ts = _parse_timestamp(d)
             content = d.get("content", "")
             meta: dict[str, Any] = {"_dict_index": i, "_original_dict": d}
+            for key in _TOOL_COPY_KEYS:
+                if key in d:
+                    meta[key] = copy.deepcopy(d[key])
 
             if isinstance(content, list):
                 blocks = _blocks_from_openai_style(content)
@@ -282,8 +288,17 @@ def denormalize_output(conversation: Conversation, ctx: dict[str, Any]) -> Any:
             base["role"] = t.role
         if isinstance(t.content, list):
             base["content"] = _blocks_to_openai_style(t.content)
+        elif (
+            t.content == ""
+            and isinstance(t.metadata.get("_original_dict"), dict)
+            and t.metadata["_original_dict"].get("content") is None
+        ):
+            base["content"] = None
         else:
             base["content"] = t.content
+        for key in _TOOL_COPY_KEYS:
+            if key in t.metadata:
+                base[key] = copy.deepcopy(t.metadata[key])
         out_dicts.append(base)
     return out_dicts
 
