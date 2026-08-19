@@ -4,6 +4,14 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.6] - 2026-08-19
+
+- **Protect structured payloads in later stages** — recency no longer LSA-summarizes
+  JSON blobs, `` ```json `` fences, or tool turns; repetition will not drop an
+  assistant ``tool_calls`` turn (which would orphan ``role=tool`` results);
+  resolution will not collapse a thread that still contains tool/JSON turns.
+- Chat resolution without tools is unchanged.
+
 ## [0.6.5] - 2026-08-19
 
 - **Fenced JSON** — the ``structure`` stage minifies JSON inside markdown code fences

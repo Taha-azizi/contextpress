@@ -11,6 +11,7 @@ from contextpress.models import Conversation, Turn
 from contextpress.normalizer import apply_text_to_turn, extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
 from contextpress.text_sim import tfidf_cosine
+from contextpress.tools import preserve_structured_turn
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
 
@@ -89,6 +90,10 @@ class RecencyStrategy(BaseStrategy):
                 continue
 
             text = extract_text_for_processing(t)
+
+            if preserve_structured_turn(t):
+                processed_by_ns.append(copy.deepcopy(t))
+                continue
 
             if self.conv_type == "rag_doc":
                 rel = self._relevance_score(query_text, text)

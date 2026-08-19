@@ -14,20 +14,20 @@ FIXTURE = Path(__file__).parent / "fixtures" / "chats" / "13_rag_fenced_json.jso
 def test_fenced_json_minified():
     text = 'payload:\n```json\n{\n  "a": 1,\n  "b": [2, 3]\n}\n```\n'
     out = compact_structure_text(text, aggressiveness=0.5)
-    assert "```json\n{\"a\":1,\"b\":[2,3]}\n```" in out
+    assert '```json\n{"a":1,"b":[2,3]}\n```' in out
     assert '"a": 1' not in out
 
 
 def test_fenced_json_uppercase_tag():
-    text = "```JSON\n{\n  \"ok\": true\n}\n```"
+    text = '```JSON\n{\n  "ok": true\n}\n```'
     out = compact_structure_text(text, aggressiveness=0.5)
-    assert out == "```JSON\n{\"ok\":true}\n```"
+    assert out == '```JSON\n{"ok":true}\n```'
 
 
 def test_bare_fence_json_minified():
-    text = "```\n{\n  \"x\": 1\n}\n```"
+    text = '```\n{\n  "x": 1\n}\n```'
     out = compact_structure_text(text, aggressiveness=0.5)
-    assert out == "```\n{\"x\":1}\n```"
+    assert out == '```\n{"x":1}\n```'
 
 
 def test_python_fence_unchanged():
@@ -41,7 +41,7 @@ def test_invalid_json_fence_unchanged():
 
 
 def test_jsonc_comments_left_alone():
-    text = "```jsonc\n{ /* note */ \"a\": 1 }\n```"
+    text = '```jsonc\n{ /* note */ "a": 1 }\n```'
     assert compact_structure_text(text, aggressiveness=0.5) == text
 
 

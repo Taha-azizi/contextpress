@@ -6,6 +6,7 @@ from contextpress.models import Conversation, Turn
 from contextpress.normalizer import extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
 from contextpress.text_sim import tfidf_similarity_matrix
+from contextpress.tools import preserve_structured_turn, tool_group_indices
 
 
 def _threshold_for_aggr(aggressiveness: float) -> float:
@@ -61,8 +62,12 @@ class RepetitionStrategy(BaseStrategy):
                 for b in range(a + 1, n):
                     if sim[a, b] > threshold:
                         ia, ib = g_idx[a], g_idx[b]
-                        # drop earlier (smaller global index)
-                        indices_to_drop.add(min(ia, ib))
+                        drop = min(ia, ib)
+                        if preserve_structured_turn(turns[drop]):
+                            continue
+                        if len(tool_group_indices(turns, drop)) > 1:
+                            continue
+                        indices_to_drop.add(drop)
 
         if self.role_aware and self.conv_type != "rag_doc":
             user_group = [(i, t) for i, t in nst if t.role == "user"]

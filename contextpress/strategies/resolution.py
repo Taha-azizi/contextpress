@@ -9,6 +9,7 @@ from contextpress.models import Conversation, Turn
 from contextpress.normalizer import extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
 from contextpress.text_sim import tfidf_cosine
+from contextpress.tools import preserve_structured_turn
 
 LAYER_A_PHRASES = [
     "let's go with",
@@ -195,6 +196,9 @@ class ResolutionStrategy(BaseStrategy):
             and _has_signal_any(extract_text_for_processing(turns[res_idx + 1]))
         ):
             collapse_end = res_idx + 1
+
+        if any(preserve_structured_turn(turns[i]) for i in range(thread_start, collapse_end + 1)):
+            return copy.deepcopy(conversation)
 
         collapsed = collapse_end - thread_start + 1
         new_turns = [copy.deepcopy(t) for t in turns[:thread_start]]

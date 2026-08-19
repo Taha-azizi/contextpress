@@ -233,9 +233,7 @@ class ContextManager:
             stats.warnings_emitted = captured
             prov = cost_provider if cost_provider is not None else self.cost_provider
             if prov is not None:
-                out_tok = (
-                    output_tokens if output_tokens is not None else self.cost_output_tokens
-                )
+                out_tok = output_tokens if output_tokens is not None else self.cost_output_tokens
                 stats.attach_cost(
                     provider=prov,
                     model=self.model or "gpt-4o-mini",

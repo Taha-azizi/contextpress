@@ -142,8 +142,7 @@ class CompressionStats:
         after_usd = self.estimated_input_cost_after_usd
         if saved is not None and before_usd is not None and after_usd is not None:
             lines.append(
-                "est. input cost: "
-                f"${before_usd:.6f} -> ${after_usd:.6f} (saved ${saved:.6f})"
+                "est. input cost: " f"${before_usd:.6f} -> ${after_usd:.6f} (saved ${saved:.6f})"
             )
         out_usd = self.estimated_output_cost_usd
         out_tok = self.estimated_output_tokens

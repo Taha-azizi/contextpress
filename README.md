@@ -165,9 +165,9 @@ OpenAI tools example: [`examples/openai_tools_compress.py`](examples/openai_tool
 
 1. **Structure** (0.6+) — Minifies JSON blobs (including markdown `` ```json `` fences, 0.6.5+) and tightens whitespace / repeated log lines inside non-system turns (stdlib only; great for agent tool payloads and RAG chunks).
 2. **Filler** — Removes low-semantic filler words and (in chat/agent) drops acknowledgement-only assistant turns.
-3. **Repetition** — TF-IDF cosine similarity; keeps the more recent of similar turns.
-4. **Resolution** — Collapses agreed threads into a single `RESOLVED:` synthetic system turn (chat/agent only).
-5. **Recency** — Extractively compresses older turns (or low-relevance chunks in `rag_doc`) while preserving the latest context.
+3. **Repetition** — TF-IDF cosine similarity; keeps the more recent of similar turns. Tool-call turns are not dropped (0.6.6+).
+4. **Resolution** — Collapses agreed threads into a single `RESOLVED:` synthetic system turn (chat/agent only). Threads that still contain tool/JSON turns are left intact (0.6.6+).
+5. **Recency** — Extractively compresses older turns (or low-relevance chunks in `rag_doc`) while preserving the latest context. JSON blobs, `` ```json `` fences, and tool turns are not summarized (0.6.6+).
 6. **Budget** — Enforces a hard token limit with `tiktoken`, removing oldest turns first while protecting system prompts and recent turns. Assistant ``tool_calls`` and matching ``role: tool`` results are dropped together (0.6.4+).
 
 **Cost estimate** (0.6+, approximate list prices for planning):

@@ -33,6 +33,29 @@ def has_tool_marker(turn: Turn) -> bool:
     return any(m in text for m in _TEXT_MARKERS)
 
 
+def is_structured_text(text: str) -> bool:
+    """True for a JSON blob or a markdown fence tagged json."""
+    s = (text or "").strip()
+    if not s:
+        return False
+    if "```json" in s.lower():
+        return True
+    if s[0] in "{[":
+        try:
+            json.loads(s)
+            return True
+        except (json.JSONDecodeError, TypeError, ValueError):
+            return False
+    return False
+
+
+def preserve_structured_turn(turn: Turn) -> bool:
+    """Tool payloads and JSON/fenced JSON should not be NLP-summarized or dropped."""
+    if has_tool_marker(turn):
+        return True
+    return is_structured_text(extract_text_for_processing(turn))
+
+
 def assistant_tool_call_ids(turn: Turn) -> list[str]:
     ids: list[str] = []
     seen: set[str] = set()
