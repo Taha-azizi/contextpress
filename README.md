@@ -163,7 +163,7 @@ OpenAI tools example: [`examples/openai_tools_compress.py`](examples/openai_tool
 
 ## Pipeline stages
 
-1. **Structure** (0.6+) — Minifies JSON blobs and tightens whitespace / repeated log lines inside non-system turns (stdlib only; great for agent tool payloads).
+1. **Structure** (0.6+) — Minifies JSON blobs (including markdown `` ```json `` fences, 0.6.5+) and tightens whitespace / repeated log lines inside non-system turns (stdlib only; great for agent tool payloads and RAG chunks).
 2. **Filler** — Removes low-semantic filler words and (in chat/agent) drops acknowledgement-only assistant turns.
 3. **Repetition** — TF-IDF cosine similarity; keeps the more recent of similar turns.
 4. **Resolution** — Collapses agreed threads into a single `RESOLVED:` synthetic system turn (chat/agent only).

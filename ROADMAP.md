@@ -42,5 +42,6 @@ deterministic Tier‑1 NLP for chat / RAG / agent **message histories**, with op
 | **0.6.2** | Agent-oriented fixtures for JSON/tool payloads; `summary()` report — shipped |
 | **0.6.3** | LangChain compress round-trip; `output_tokens` on cost stats / `summary()` — shipped |
 | **0.6.4** | OpenAI `tool_calls` / `role=tool` round-trip, JSON minify, budget pair integrity — shipped |
+| **0.6.5** | Minify JSON inside markdown code fences (`structure` stage) — shipped |
 
 Stay classical-NLP-first; keep optional LLM extras optional.

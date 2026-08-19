@@ -1,0 +1,20 @@
+{
+  "id": "13_rag_fenced_json",
+  "type": "rag_doc",
+  "source": "synthetic (RAG chunk with pretty-printed JSON in a markdown fence)",
+  "messages": [
+    {"role": "system", "content": "Answer using the provided document chunks."},
+    {
+      "role": "user",
+      "content": "Chunk 1: Deploy index excerpt.\n\n```json\n{\n  \"service\": \"api-v2\",\n  \"environment\": \"staging\",\n  \"events\": [\n    {\n      \"id\": \"evt-001\",\n      \"version\": \"2.4.1\",\n      \"status\": \"healthy\",\n      \"notes\": \"Rolling update completed without errors\"\n    },\n    {\n      \"id\": \"evt-002\",\n      \"version\": \"2.4.0\",\n      \"status\": \"superseded\",\n      \"notes\": \"Previous stable release\"\n    }\n  ]\n}\n```"
+    },
+    {
+      "role": "user",
+      "content": "Chunk 2: Unrelated weather note: rain is expected tomorrow in Seattle with strong winds near the coast."
+    },
+    {
+      "role": "user",
+      "content": "Which version of api-v2 is healthy on staging?"
+    }
+  ]
+}

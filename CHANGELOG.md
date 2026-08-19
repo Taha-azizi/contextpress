@@ -4,6 +4,14 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.5] - 2026-08-19
+
+- **Fenced JSON** — the ``structure`` stage minifies JSON inside markdown code fences
+  (`` ```json ``, `` ```JSON ``, unlabeled `` ``` ``) when the body parses as JSON.
+  Other languages and invalid JSON are left unchanged.
+- Fixture: `tests/fixtures/chats/13_rag_fenced_json.json`.
+- Example: `examples/fenced_json_compress.py`.
+
 ## [0.6.4] - 2026-08-18
 
 - **OpenAI tool messages** — ``role: tool`` / ``function`` are valid; ``tool_calls``,

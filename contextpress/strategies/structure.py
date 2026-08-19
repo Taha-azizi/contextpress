@@ -14,6 +14,7 @@ from contextpress.tools import minify_tool_fields
 _CODE_FENCE = re.compile(r"(```[\s\S]*?```)", re.MULTILINE)
 _MULTI_BLANK = re.compile(r"\n{3,}")
 _MULTI_SPACE = re.compile(r"[ \t]{2,}")
+_FENCE_JSON_LANGS = frozenset({"", "json", "jsonc"})
 
 
 def _try_minify_json(text: str) -> str | None:
@@ -50,9 +51,30 @@ def _compact_plain(text: str, *, aggressiveness: float) -> str:
     return s.strip() if aggressiveness >= 0.75 else s
 
 
+def _compact_fenced(segment: str) -> str:
+    """Minify JSON inside a complete markdown fence; leave other languages alone."""
+    if not (segment.startswith("```") and segment.endswith("```") and len(segment) >= 6):
+        return segment
+    inner = segment[3:-3]
+    nl = inner.find("\n")
+    if nl < 0:
+        return segment
+    tag_raw = inner[:nl]
+    body = inner[nl + 1 :]
+    if body.endswith("\n"):
+        body = body[:-1]
+    lang = tag_raw.strip().split()[0].lower() if tag_raw.strip() else ""
+    if lang not in _FENCE_JSON_LANGS:
+        return segment
+    mini = _try_minify_json(body)
+    if mini is None:
+        return segment
+    return f"```{tag_raw}\n{mini}\n```"
+
+
 def _compact_segment(segment: str, *, aggressiveness: float) -> str:
     if segment.startswith("```"):
-        return segment
+        return _compact_fenced(segment)
     mini = _try_minify_json(segment)
     if mini is not None:
         return mini
