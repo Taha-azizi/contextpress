@@ -6,6 +6,7 @@ and reconstruct the original format after processing.
 from __future__ import annotations
 
 import copy
+import json
 import warnings
 from datetime import datetime
 from typing import Any
@@ -63,6 +64,15 @@ def _blocks_from_openai_style(items: list[dict[str, Any]]) -> list[ContentBlock]
             blocks.append(
                 ContentBlock(type="image", content=url or str(item), metadata=copy.deepcopy(item))
             )
+        elif t in ("tool_use", "tool_result"):
+            raw = item.get("input") if t == "tool_use" else item.get("content", "")
+            if isinstance(raw, (dict, list)):
+                body = json.dumps(raw, separators=(",", ":"), ensure_ascii=False)
+            elif raw is None:
+                body = ""
+            else:
+                body = str(raw)
+            blocks.append(ContentBlock(type=str(t), content=body, metadata=copy.deepcopy(item)))
         else:
             blocks.append(
                 ContentBlock(
@@ -91,6 +101,27 @@ def _blocks_to_openai_style(blocks: list[ContentBlock]) -> list[dict[str, Any]]:
                 out.append(copy.deepcopy(meta))
             else:
                 out.append({"type": "image_url", "image_url": {"url": b.content}})
+        elif b.type in ("tool_use", "tool_result"):
+            d = copy.deepcopy(b.metadata) if b.metadata else {"type": b.type}
+            d["type"] = b.type
+            parsed: Any = None
+            if isinstance(b.content, str) and b.content.strip()[:1] in "{[":
+                try:
+                    parsed = json.loads(b.content)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    parsed = None
+            if b.type == "tool_use":
+                if parsed is not None:
+                    d["input"] = parsed
+                elif isinstance(d.get("input"), str):
+                    d["input"] = b.content
+            else:
+                orig_c = d.get("content")
+                if isinstance(orig_c, str) or orig_c is None:
+                    d["content"] = b.content
+                elif parsed is not None:
+                    d["content"] = parsed
+            out.append(d)
         else:
             out.append(
                 copy.deepcopy(b.metadata) if b.metadata else {"type": b.type, "content": b.content}

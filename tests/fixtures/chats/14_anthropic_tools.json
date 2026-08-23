@@ -1,0 +1,32 @@
+{
+  "id": "14_anthropic_tools",
+  "type": "agent",
+  "source": "synthetic (Anthropic tool_use / tool_result content blocks)",
+  "messages": [
+    {"role": "system", "content": "You are a deploy agent with tools."},
+    {"role": "user", "content": "Find recent staging deploys for api-v2."},
+    {
+      "role": "assistant",
+      "content": [
+        {"type": "text", "text": "Checking the deploy index."},
+        {
+          "type": "tool_use",
+          "id": "toolu_search_1",
+          "name": "search_deploys",
+          "input": {"service": "api-v2", "environment": "staging", "limit": 20}
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "content": [
+        {
+          "type": "tool_result",
+          "tool_use_id": "toolu_search_1",
+          "content": "{\n  \"service\": \"api-v2\",\n  \"environment\": \"staging\",\n  \"events\": [\n    {\n      \"id\": \"evt-001\",\n      \"version\": \"2.4.1\",\n      \"status\": \"healthy\"\n    }\n  ]\n}"
+        }
+      ]
+    },
+    {"role": "assistant", "content": "Staging is healthy on 2.4.1."}
+  ]
+}

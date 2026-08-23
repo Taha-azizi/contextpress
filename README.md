@@ -150,7 +150,7 @@ That script builds a long history and a tight `token_budget` so you can see turn
 
 - **chat** — Typical back-and-forth dialogue. Filler removal, repetition deduplication, resolution collapsing, recency weighting, and token budgets are tuned for conversational flow.
 - **rag_doc** — Document chunks or RAG context. Resolution is off; repetition compares all chunks; recency uses relevance to the latest user query instead of chat recency.
-- **agent** — Tool-using or task-oriented threads. Resolution can trigger on a single high-confidence completion signal; filler rules preserve tool-related turns when markers are present. OpenAI Chat Completions ``tool_calls`` / ``role: tool`` messages are first-class (0.6.4+).
+- **agent** — Tool-using or task-oriented threads. Resolution can trigger on a single high-confidence completion signal; filler rules preserve tool-related turns when markers are present. OpenAI Chat Completions ``tool_calls`` / ``role: tool`` (0.6.4+) and Anthropic ``tool_use`` / ``tool_result`` content blocks (0.6.7+) are first-class.
 
 ```python
 ContextManager(type="chat")
@@ -160,6 +160,7 @@ ContextManager(type="agent")
 
 Runnable agent example: [`examples/agent_pipeline.py`](examples/agent_pipeline.py).
 OpenAI tools example: [`examples/openai_tools_compress.py`](examples/openai_tools_compress.py).
+Anthropic tools example: [`examples/anthropic_tools_compress.py`](examples/anthropic_tools_compress.py).
 
 ## Pipeline stages
 

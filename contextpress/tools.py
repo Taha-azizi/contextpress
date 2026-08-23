@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from contextpress.models import Turn
+from contextpress.models import ContentBlock, Turn
 from contextpress.normalizer import extract_text_for_processing
 
 _TOOL_META_KEYS = ("tool_calls", "tool_call", "tool_use", "tool_result", "tool_call_id")
@@ -25,6 +25,10 @@ def _layers(turn: Turn) -> list[dict[str, Any]]:
 def has_tool_marker(turn: Turn) -> bool:
     """True if this turn is a tool call, tool result, or has a textual tool marker."""
     if turn.role in _RESULT_ROLES:
+        return True
+    if isinstance(turn.content, list) and any(
+        b.type in ("tool_use", "tool_result") for b in turn.content
+    ):
         return True
     for layer in _layers(turn):
         if any(k in layer for k in _TOOL_META_KEYS):
@@ -56,6 +60,28 @@ def preserve_structured_turn(turn: Turn) -> bool:
     return is_structured_text(extract_text_for_processing(turn))
 
 
+def _ids_from_blocks(turn: Turn, *, block_type: str, id_key: str) -> list[str]:
+    ids: list[str] = []
+    if not isinstance(turn.content, list):
+        return ids
+    for block in turn.content:
+        if block.type != block_type:
+            continue
+        cid = (block.metadata or {}).get(id_key)
+        if cid is not None:
+            ids.append(str(cid))
+    return ids
+
+
+def is_tool_result_turn(turn: Turn) -> bool:
+    """OpenAI role=tool/function, or Anthropic user turn of only tool_result blocks."""
+    if turn.role in _RESULT_ROLES:
+        return True
+    if isinstance(turn.content, list) and turn.content:
+        return all(b.type == "tool_result" for b in turn.content)
+    return False
+
+
 def assistant_tool_call_ids(turn: Turn) -> list[str]:
     ids: list[str] = []
     seen: set[str] = set()
@@ -74,6 +100,10 @@ def assistant_tool_call_ids(turn: Turn) -> list[str]:
                 seen.add(sid)
                 ids.append(sid)
         break
+    for cid in _ids_from_blocks(turn, block_type="tool_use", id_key="id"):
+        if cid not in seen:
+            seen.add(cid)
+            ids.append(cid)
     return ids
 
 
@@ -82,16 +112,23 @@ def result_tool_call_id(turn: Turn) -> str | None:
         tid = layer.get("tool_call_id")
         if tid is not None:
             return str(tid)
-    return None
+    block_ids = _ids_from_blocks(turn, block_type="tool_result", id_key="tool_use_id")
+    return block_ids[0] if block_ids else None
 
 
 def tool_payload_text(turn: Turn) -> str:
-    """Extra text for token counting (tool_calls JSON, not already in content)."""
+    """Extra text for token counting (tool_calls JSON and Anthropic tool blocks)."""
+    parts: list[str] = []
     for layer in _layers(turn):
         calls = layer.get("tool_calls")
         if isinstance(calls, list) and calls:
-            return json.dumps(calls, ensure_ascii=False)
-    return ""
+            parts.append(json.dumps(calls, ensure_ascii=False))
+            break
+    if isinstance(turn.content, list):
+        for block in turn.content:
+            if block.type in ("tool_use", "tool_result") and block.content:
+                parts.append(block.content)
+    return "\n".join(parts)
 
 
 def _minify_json_string(text: str) -> str:
@@ -106,12 +143,13 @@ def _minify_json_string(text: str) -> str:
 
 
 def minify_tool_fields(turn: Turn) -> Turn:
-    """Minify JSON in tool_calls[].function.arguments; write back to metadata."""
-    meta = turn.metadata
-    if not meta:
+    """Minify JSON in tool_calls arguments and Anthropic tool_use / tool_result blocks."""
+    meta = turn.metadata or {}
+    if not meta and not isinstance(turn.content, list):
         return turn
     changed = False
     new_meta = dict(meta)
+    new_content: str | list[ContentBlock] = turn.content
 
     def _compact_calls(calls: Any) -> Any:
         nonlocal changed
@@ -136,6 +174,22 @@ def minify_tool_fields(turn: Turn) -> Turn:
             out.append(c)
         return out
 
+    def _compact_block_dict(item: dict[str, Any]) -> dict[str, Any]:
+        nonlocal changed
+        kind = item.get("type")
+        out = dict(item)
+        if kind == "tool_use" and isinstance(out.get("input"), str):
+            mini = _minify_json_string(out["input"])
+            if mini != out["input"]:
+                out["input"] = mini
+                changed = True
+        if kind == "tool_result" and isinstance(out.get("content"), str):
+            mini = _minify_json_string(out["content"])
+            if mini != out["content"]:
+                out["content"] = mini
+                changed = True
+        return out
+
     if "tool_calls" in new_meta:
         new_meta["tool_calls"] = _compact_calls(new_meta["tool_calls"])
     orig = new_meta.get("_original_dict")
@@ -149,13 +203,51 @@ def minify_tool_fields(turn: Turn) -> Turn:
             if mini != orig["content"]:
                 orig["content"] = mini
                 changed = True
+        if isinstance(orig.get("content"), list):
+            orig["content"] = [
+                _compact_block_dict(x) if isinstance(x, dict) else x for x in orig["content"]
+            ]
         new_meta["_original_dict"] = orig
+
+    if isinstance(turn.content, list):
+        new_blocks: list[ContentBlock] = []
+        for block in turn.content:
+            if block.type not in ("tool_use", "tool_result"):
+                new_blocks.append(block)
+                continue
+            mini = (
+                _minify_json_string(block.content)
+                if isinstance(block.content, str)
+                else block.content
+            )
+            bmeta = dict(block.metadata or {})
+            if block.type == "tool_use" and isinstance(bmeta.get("input"), str):
+                compacted = _minify_json_string(bmeta["input"])
+                if compacted != bmeta["input"]:
+                    bmeta["input"] = compacted
+                    changed = True
+            if block.type == "tool_result" and isinstance(bmeta.get("content"), str):
+                compacted = _minify_json_string(bmeta["content"])
+                if compacted != bmeta["content"]:
+                    bmeta["content"] = compacted
+                    changed = True
+            if mini != block.content:
+                changed = True
+            new_blocks.append(
+                ContentBlock(
+                    type=block.type,
+                    content=mini,
+                    mime_type=block.mime_type,
+                    metadata=bmeta,
+                )
+            )
+        new_content = new_blocks
 
     if not changed:
         return turn
     return Turn(
         role=turn.role,
-        content=turn.content,
+        content=new_content,
         timestamp=turn.timestamp,
         metadata=new_meta,
         importance=turn.importance,
@@ -168,14 +260,14 @@ def minify_tool_fields(turn: Turn) -> Turn:
 
 
 def tool_group_indices(turns: list[Turn], index: int) -> list[int]:
-    """Indices of an assistant tool_calls turn plus following matching tool results.
+    """Indices of an assistant tool call turn plus following matching tool results.
 
     If ``index`` is a tool result, walk back to the parent assistant first.
     """
     if index < 0 or index >= len(turns):
         return [index]
     t = turns[index]
-    if t.role in _RESULT_ROLES:
+    if is_tool_result_turn(t):
         k = index - 1
         while k >= 0:
             if turns[k].role == "assistant" and assistant_tool_call_ids(turns[k]):
@@ -184,7 +276,7 @@ def tool_group_indices(turns: list[Turn], index: int) -> list[int]:
                 if rid is None or rid in ids:
                     return tool_group_indices(turns, k)
                 break
-            if turns[k].role not in _RESULT_ROLES:
+            if not is_tool_result_turn(turns[k]):
                 break
             k -= 1
         return [index]
@@ -194,7 +286,7 @@ def tool_group_indices(turns: list[Turn], index: int) -> list[int]:
         return [index]
     group = [index]
     j = index + 1
-    while j < len(turns) and turns[j].role in _RESULT_ROLES:
+    while j < len(turns) and is_tool_result_turn(turns[j]):
         rid = result_tool_call_id(turns[j])
         if rid is None or rid in ids:
             group.append(j)

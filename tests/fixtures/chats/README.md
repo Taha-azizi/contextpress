@@ -16,4 +16,6 @@ No network required — used by `tests/test_fixture_chats.py`.
 | `09_agent_tool_json.json` | agent | Large pretty-printed tool JSON |
 | `10_agent_repeated_logs.json` | agent | Repeated log lines in tool output |
 | `11_agent_mixed.json` | agent | Tool call + result + follow-up thread |
+| `12_openai_tools.json` | agent | OpenAI `tool_calls` + `role=tool` |
 | `13_rag_fenced_json.json` | rag_doc | Pretty-printed JSON inside a markdown fence |
+| `14_anthropic_tools.json` | agent | Anthropic `tool_use` / `tool_result` blocks |
