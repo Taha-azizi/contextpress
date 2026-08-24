@@ -4,6 +4,18 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.8] - 2026-08-24
+
+- **Gemini function calling** — ``parts`` with ``functionCall`` / ``functionResponse``
+  (and snake_case aliases) round-trip; ``role: model`` maps internally to assistant
+  and is restored on output. ``thought_signature`` on the original part is preserved.
+- JSON **strings** in ``args`` / ``arguments`` / ``response`` are minified; objects
+  stay objects.
+- Budget treats a user turn of only ``functionResponse`` parts as the match for the
+  preceding ``model``/assistant ``functionCall`` ids (same pair integrity as OpenAI
+  ``role=tool`` and Anthropic ``tool_result``).
+- Example: `examples/gemini_tools_compress.py`.
+
 ## [0.6.7] - 2026-08-22
 
 - **Anthropic tool blocks** — ``tool_use`` / ``tool_result`` content lists round-trip;

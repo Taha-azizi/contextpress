@@ -1,4 +1,4 @@
-"""Helpers for OpenAI-style tool_calls / role=tool messages (0.6.4+)."""
+"""Helpers for OpenAI, Anthropic, and Gemini tool messages (0.6.4+)."""
 
 from __future__ import annotations
 
@@ -8,9 +8,31 @@ from typing import Any
 from contextpress.models import ContentBlock, Turn
 from contextpress.normalizer import extract_text_for_processing
 
-_TOOL_META_KEYS = ("tool_calls", "tool_call", "tool_use", "tool_result", "tool_call_id")
-_TEXT_MARKERS = ("tool_calls", "tool_call", "tool_use", "tool_result", "<tool", "[tool")
+_TOOL_META_KEYS = (
+    "tool_calls",
+    "tool_call",
+    "tool_use",
+    "tool_result",
+    "tool_call_id",
+    "functionCall",
+    "function_call",
+    "functionResponse",
+    "function_response",
+)
+_TEXT_MARKERS = (
+    "tool_calls",
+    "tool_call",
+    "tool_use",
+    "tool_result",
+    "<tool",
+    "[tool",
+    "functioncall",
+    "function_call",
+    "functionresponse",
+    "function_response",
+)
 _RESULT_ROLES = frozenset({"tool", "function"})
+_RESULT_BLOCK_TYPES = frozenset({"tool_result", "function_response"})
 
 
 def _layers(turn: Turn) -> list[dict[str, Any]]:
@@ -27,7 +49,8 @@ def has_tool_marker(turn: Turn) -> bool:
     if turn.role in _RESULT_ROLES:
         return True
     if isinstance(turn.content, list) and any(
-        b.type in ("tool_use", "tool_result") for b in turn.content
+        b.type in ("tool_use", "tool_result", "function_call", "function_response")
+        for b in turn.content
     ):
         return True
     for layer in _layers(turn):
@@ -73,12 +96,21 @@ def _ids_from_blocks(turn: Turn, *, block_type: str, id_key: str) -> list[str]:
     return ids
 
 
+def _nested_tool_id(block: ContentBlock, *keys: str) -> str | None:
+    meta = block.metadata or {}
+    for key in keys:
+        payload = meta.get(key)
+        if isinstance(payload, dict) and payload.get("id") is not None:
+            return str(payload["id"])
+    return None
+
+
 def is_tool_result_turn(turn: Turn) -> bool:
-    """OpenAI role=tool/function, or Anthropic user turn of only tool_result blocks."""
+    """OpenAI role=tool, Anthropic tool_result-only user, or Gemini functionResponse-only."""
     if turn.role in _RESULT_ROLES:
         return True
     if isinstance(turn.content, list) and turn.content:
-        return all(b.type == "tool_result" for b in turn.content)
+        return all(b.type in _RESULT_BLOCK_TYPES for b in turn.content)
     return False
 
 
@@ -104,6 +136,14 @@ def assistant_tool_call_ids(turn: Turn) -> list[str]:
         if cid not in seen:
             seen.add(cid)
             ids.append(cid)
+    if isinstance(turn.content, list):
+        for block in turn.content:
+            if block.type != "function_call":
+                continue
+            cid = _nested_tool_id(block, "functionCall", "function_call")
+            if cid and cid not in seen:
+                seen.add(cid)
+                ids.append(cid)
     return ids
 
 
@@ -113,11 +153,20 @@ def result_tool_call_id(turn: Turn) -> str | None:
         if tid is not None:
             return str(tid)
     block_ids = _ids_from_blocks(turn, block_type="tool_result", id_key="tool_use_id")
-    return block_ids[0] if block_ids else None
+    if block_ids:
+        return block_ids[0]
+    if isinstance(turn.content, list):
+        for block in turn.content:
+            if block.type != "function_response":
+                continue
+            cid = _nested_tool_id(block, "functionResponse", "function_response")
+            if cid:
+                return cid
+    return None
 
 
 def tool_payload_text(turn: Turn) -> str:
-    """Extra text for token counting (tool_calls JSON and Anthropic tool blocks)."""
+    """Extra text for token counting (tool_calls JSON and native tool blocks)."""
     parts: list[str] = []
     for layer in _layers(turn):
         calls = layer.get("tool_calls")
@@ -126,7 +175,9 @@ def tool_payload_text(turn: Turn) -> str:
             break
     if isinstance(turn.content, list):
         for block in turn.content:
-            if block.type in ("tool_use", "tool_result") and block.content:
+            if block.type in ("tool_use", "tool_result", "function_call", "function_response") and (
+                block.content
+            ):
                 parts.append(block.content)
     return "\n".join(parts)
 
@@ -143,7 +194,7 @@ def _minify_json_string(text: str) -> str:
 
 
 def minify_tool_fields(turn: Turn) -> Turn:
-    """Minify JSON in tool_calls arguments and Anthropic tool_use / tool_result blocks."""
+    """Minify JSON strings in tool_calls, Anthropic blocks, and Gemini parts."""
     meta = turn.metadata or {}
     if not meta and not isinstance(turn.content, list):
         return turn
@@ -188,6 +239,32 @@ def minify_tool_fields(turn: Turn) -> Turn:
             if mini != out["content"]:
                 out["content"] = mini
                 changed = True
+        for call_key, arg_keys in (
+            ("functionCall", ("args", "arguments")),
+            ("function_call", ("args", "arguments")),
+        ):
+            payload = out.get(call_key)
+            if not isinstance(payload, dict):
+                continue
+            payload = dict(payload)
+            for ak in arg_keys:
+                if isinstance(payload.get(ak), str):
+                    mini = _minify_json_string(payload[ak])
+                    if mini != payload[ak]:
+                        payload[ak] = mini
+                        changed = True
+            out[call_key] = payload
+        for resp_key in ("functionResponse", "function_response"):
+            payload = out.get(resp_key)
+            if not isinstance(payload, dict):
+                continue
+            payload = dict(payload)
+            if isinstance(payload.get("response"), str):
+                mini = _minify_json_string(payload["response"])
+                if mini != payload["response"]:
+                    payload["response"] = mini
+                    changed = True
+            out[resp_key] = payload
         return out
 
     if "tool_calls" in new_meta:
@@ -207,12 +284,21 @@ def minify_tool_fields(turn: Turn) -> Turn:
             orig["content"] = [
                 _compact_block_dict(x) if isinstance(x, dict) else x for x in orig["content"]
             ]
+        if isinstance(orig.get("parts"), list):
+            orig["parts"] = [
+                _compact_block_dict(x) if isinstance(x, dict) else x for x in orig["parts"]
+            ]
         new_meta["_original_dict"] = orig
 
     if isinstance(turn.content, list):
         new_blocks: list[ContentBlock] = []
         for block in turn.content:
-            if block.type not in ("tool_use", "tool_result"):
+            if block.type not in (
+                "tool_use",
+                "tool_result",
+                "function_call",
+                "function_response",
+            ):
                 new_blocks.append(block)
                 continue
             mini = (
@@ -220,17 +306,7 @@ def minify_tool_fields(turn: Turn) -> Turn:
                 if isinstance(block.content, str)
                 else block.content
             )
-            bmeta = dict(block.metadata or {})
-            if block.type == "tool_use" and isinstance(bmeta.get("input"), str):
-                compacted = _minify_json_string(bmeta["input"])
-                if compacted != bmeta["input"]:
-                    bmeta["input"] = compacted
-                    changed = True
-            if block.type == "tool_result" and isinstance(bmeta.get("content"), str):
-                compacted = _minify_json_string(bmeta["content"])
-                if compacted != bmeta["content"]:
-                    bmeta["content"] = compacted
-                    changed = True
+            bmeta = _compact_block_dict(dict(block.metadata or {}))
             if mini != block.content:
                 changed = True
             new_blocks.append(

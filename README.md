@@ -150,7 +150,7 @@ That script builds a long history and a tight `token_budget` so you can see turn
 
 - **chat** — Typical back-and-forth dialogue. Filler removal, repetition deduplication, resolution collapsing, recency weighting, and token budgets are tuned for conversational flow.
 - **rag_doc** — Document chunks or RAG context. Resolution is off; repetition compares all chunks; recency uses relevance to the latest user query instead of chat recency.
-- **agent** — Tool-using or task-oriented threads. Resolution can trigger on a single high-confidence completion signal; filler rules preserve tool-related turns when markers are present. OpenAI Chat Completions ``tool_calls`` / ``role: tool`` (0.6.4+) and Anthropic ``tool_use`` / ``tool_result`` content blocks (0.6.7+) are first-class.
+- **agent** — Tool-using or task-oriented threads. Resolution can trigger on a single high-confidence completion signal; filler rules preserve tool-related turns when markers are present. OpenAI Chat Completions ``tool_calls`` / ``role: tool`` (0.6.4+), Anthropic ``tool_use`` / ``tool_result`` content blocks (0.6.7+), and Gemini ``functionCall`` / ``functionResponse`` parts (0.6.8+) are first-class.
 
 ```python
 ContextManager(type="chat")
@@ -161,6 +161,7 @@ ContextManager(type="agent")
 Runnable agent example: [`examples/agent_pipeline.py`](examples/agent_pipeline.py).
 OpenAI tools example: [`examples/openai_tools_compress.py`](examples/openai_tools_compress.py).
 Anthropic tools example: [`examples/anthropic_tools_compress.py`](examples/anthropic_tools_compress.py).
+Gemini tools example: [`examples/gemini_tools_compress.py`](examples/gemini_tools_compress.py).
 
 ## Pipeline stages
 
@@ -169,7 +170,7 @@ Anthropic tools example: [`examples/anthropic_tools_compress.py`](examples/anthr
 3. **Repetition** — TF-IDF cosine similarity; keeps the more recent of similar turns. Tool-call turns are not dropped (0.6.6+).
 4. **Resolution** — Collapses agreed threads into a single `RESOLVED:` synthetic system turn (chat/agent only). Threads that still contain tool/JSON turns are left intact (0.6.6+).
 5. **Recency** — Extractively compresses older turns (or low-relevance chunks in `rag_doc`) while preserving the latest context. JSON blobs, `` ```json `` fences, and tool turns are not summarized (0.6.6+).
-6. **Budget** — Enforces a hard token limit with `tiktoken`, removing oldest turns first while protecting system prompts and recent turns. Assistant ``tool_calls`` and matching ``role: tool`` results are dropped together (0.6.4+).
+6. **Budget** — Enforces a hard token limit with `tiktoken`, removing oldest turns first while protecting system prompts and recent turns. Assistant ``tool_calls`` and matching ``role: tool`` results are dropped together (0.6.4+); Anthropic ``tool_use``/``tool_result`` and Gemini ``functionCall``/``functionResponse`` pairs stay intact the same way (0.6.7+/0.6.8+).
 
 **Cost estimate** (0.6+, approximate list prices for planning):
 

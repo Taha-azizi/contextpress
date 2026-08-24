@@ -1,0 +1,34 @@
+{
+  "id": "15_gemini_tools",
+  "type": "agent",
+  "source": "synthetic (Gemini functionCall / functionResponse parts)",
+  "messages": [
+    {"role": "user", "parts": [{"text": "Find recent staging deploys for api-v2."}]},
+    {
+      "role": "model",
+      "parts": [
+        {
+          "functionCall": {
+            "id": "fc_search_1",
+            "name": "search_deploys",
+            "args": {"service": "api-v2", "environment": "staging", "limit": 20}
+          },
+          "thought_signature": "sig-keep-me"
+        }
+      ]
+    },
+    {
+      "role": "user",
+      "parts": [
+        {
+          "functionResponse": {
+            "id": "fc_search_1",
+            "name": "search_deploys",
+            "response": "{\n  \"service\": \"api-v2\",\n  \"environment\": \"staging\",\n  \"events\": [\n    {\n      \"id\": \"evt-001\",\n      \"version\": \"2.4.1\",\n      \"status\": \"healthy\"\n    }\n  ]\n}"
+          }
+        }
+      ]
+    },
+    {"role": "model", "parts": [{"text": "Staging is healthy on 2.4.1."}]}
+  ]
+}

@@ -13,7 +13,7 @@ from typing import Any
 
 from contextpress.models import ContentBlock, Conversation, Turn
 
-_VALID_ROLES = frozenset({"user", "assistant", "system", "tool", "function"})
+_VALID_ROLES = frozenset({"user", "assistant", "system", "tool", "function", "model"})
 _TOOL_COPY_KEYS = ("tool_calls", "tool_call_id", "name")
 _LC_TYPE_MAP = {
     "human": "user",
@@ -129,6 +129,125 @@ def _blocks_to_openai_style(blocks: list[ContentBlock]) -> list[dict[str, Any]]:
     return out
 
 
+def _json_body(raw: Any) -> str:
+    if isinstance(raw, (dict, list)):
+        return json.dumps(raw, separators=(",", ":"), ensure_ascii=False)
+    if raw is None:
+        return ""
+    return str(raw)
+
+
+def _try_parse_json(text: str) -> Any:
+    s = text.strip()
+    if not s or s[0] not in "{[":
+        return None
+    try:
+        return json.loads(s)
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return None
+
+
+def _blocks_from_gemini_parts(parts: list[Any]) -> list[ContentBlock]:
+    """Map Gemini ``parts`` (functionCall / functionResponse / text) to ContentBlocks."""
+    blocks: list[ContentBlock] = []
+    for item in parts:
+        if not isinstance(item, dict):
+            blocks.append(ContentBlock(type="text", content=str(item)))
+            continue
+        fc = item.get("functionCall")
+        if fc is None:
+            fc = item.get("function_call")
+        fr = item.get("functionResponse")
+        if fr is None:
+            fr = item.get("function_response")
+        if isinstance(fc, dict):
+            args = fc.get("args", fc.get("arguments"))
+            blocks.append(
+                ContentBlock(
+                    type="function_call",
+                    content=_json_body(args),
+                    metadata=copy.deepcopy(item),
+                )
+            )
+        elif isinstance(fr, dict):
+            blocks.append(
+                ContentBlock(
+                    type="function_response",
+                    content=_json_body(fr.get("response")),
+                    metadata=copy.deepcopy(item),
+                )
+            )
+        elif "text" in item:
+            blocks.append(
+                ContentBlock(
+                    type="text",
+                    content=str(item.get("text") or ""),
+                    metadata=copy.deepcopy(item),
+                )
+            )
+        else:
+            blocks.append(ContentBlock(type="part", content="", metadata=copy.deepcopy(item)))
+    return blocks
+
+
+def _blocks_to_gemini_parts(blocks: list[ContentBlock]) -> list[dict[str, Any]]:
+    """Rebuild Gemini ``parts`` from ContentBlocks, preserving thought_signature."""
+    out: list[dict[str, Any]] = []
+    for b in blocks:
+        d = copy.deepcopy(b.metadata) if b.metadata else {}
+        if b.type == "text":
+            d["text"] = b.content
+            out.append(d if d else {"text": b.content})
+            continue
+        if b.type == "function_call":
+            key = (
+                "functionCall"
+                if "functionCall" in d
+                else ("function_call" if "function_call" in d else "functionCall")
+            )
+            fc = dict(d.get(key) or {})
+            parsed = _try_parse_json(b.content) if isinstance(b.content, str) else None
+            snake_args = "arguments" in fc and "args" not in fc
+            orig_args = fc.get("arguments") if snake_args else fc.get("args")
+            if parsed is not None:
+                if isinstance(orig_args, str):
+                    if snake_args:
+                        fc["arguments"] = b.content
+                    else:
+                        fc["args"] = b.content
+                elif snake_args:
+                    fc["arguments"] = parsed
+                else:
+                    fc["args"] = parsed
+            elif isinstance(b.content, str) and b.content and isinstance(orig_args, str):
+                if snake_args:
+                    fc["arguments"] = b.content
+                else:
+                    fc["args"] = b.content
+            d[key] = fc
+            out.append(d)
+            continue
+        if b.type == "function_response":
+            key = (
+                "functionResponse"
+                if "functionResponse" in d
+                else ("function_response" if "function_response" in d else "functionResponse")
+            )
+            fr = dict(d.get(key) or {})
+            parsed = _try_parse_json(b.content) if isinstance(b.content, str) else None
+            if isinstance(fr.get("response"), str):
+                fr["response"] = b.content
+            elif parsed is not None:
+                fr["response"] = parsed
+            elif b.content:
+                fr["response"] = b.content
+            d[key] = fr
+            out.append(d)
+            continue
+        out.append(d if d else {"type": b.type, "content": b.content})
+    return out
+
+
 def _get_lc_role_and_content(obj: Any) -> tuple[str, str | list[ContentBlock], dict[str, Any]]:
     role = None
     if hasattr(obj, "type") and obj.type is not None:
@@ -226,10 +345,11 @@ def normalize_messages(
                 )
                 continue
             d = copy.deepcopy(raw)
-            role = str(d.get("role", "user")).lower()
-            if role not in _VALID_ROLES:
+            role_raw = str(d.get("role", "user")).lower()
+            role = "assistant" if role_raw == "model" else role_raw
+            if role not in _VALID_ROLES and role_raw not in _VALID_ROLES:
                 warnings.warn(
-                    f"contextpress: unknown role {role!r} — passing through as-is",
+                    f"contextpress: unknown role {role_raw!r} — passing through as-is",
                     stacklevel=2,
                 )
             ts = _parse_timestamp(d)
@@ -239,7 +359,17 @@ def normalize_messages(
                 if key in d:
                     meta[key] = copy.deepcopy(d[key])
 
-            if isinstance(content, list):
+            if isinstance(d.get("parts"), list):
+                meta["_wire_parts"] = True
+                turns.append(
+                    Turn(
+                        role=role,
+                        content=_blocks_from_gemini_parts(d["parts"]),
+                        timestamp=ts,
+                        metadata=meta,
+                    )
+                )
+            elif isinstance(content, list):
                 blocks = _blocks_from_openai_style(content)
                 turns.append(
                     Turn(
@@ -313,17 +443,25 @@ def denormalize_output(conversation: Conversation, ctx: dict[str, Any]) -> Any:
     out_dicts: list[dict[str, Any]] = []
     for t in turns:
         base = copy.deepcopy(t.metadata.get("_original_dict", {}))
+        orig = t.metadata.get("_original_dict") if isinstance(t.metadata, dict) else None
         if not base:
             base = {"role": t.role}
+        elif isinstance(orig, dict) and orig.get("role"):
+            base["role"] = orig["role"]
         else:
             base["role"] = t.role
-        if isinstance(t.content, list):
+        wire_parts = bool(t.metadata.get("_wire_parts")) or (
+            isinstance(orig, dict) and isinstance(orig.get("parts"), list)
+        )
+        if wire_parts:
+            if isinstance(t.content, list):
+                base["parts"] = _blocks_to_gemini_parts(t.content)
+            else:
+                base["parts"] = [{"text": str(t.content)}]
+            base.pop("content", None)
+        elif isinstance(t.content, list):
             base["content"] = _blocks_to_openai_style(t.content)
-        elif (
-            t.content == ""
-            and isinstance(t.metadata.get("_original_dict"), dict)
-            and t.metadata["_original_dict"].get("content") is None
-        ):
+        elif t.content == "" and isinstance(orig, dict) and orig.get("content") is None:
             base["content"] = None
         else:
             base["content"] = t.content

@@ -45,5 +45,6 @@ deterministic Tier‑1 NLP for chat / RAG / agent **message histories**, with op
 | **0.6.5** | Minify JSON inside markdown code fences (`structure` stage) — shipped |
 | **0.6.6** | Protect tool/JSON payloads from recency, repetition, and resolution — shipped |
 | **0.6.7** | Anthropic `tool_use` / `tool_result` content blocks — shipped |
+| **0.6.8** | Gemini `functionCall` / `functionResponse` parts — shipped |
 
 Stay classical-NLP-first; keep optional LLM extras optional.
