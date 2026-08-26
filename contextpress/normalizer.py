@@ -6,11 +6,11 @@ and reconstruct the original format after processing.
 from __future__ import annotations
 
 import copy
-import json
 import warnings
 from datetime import datetime
 from typing import Any
 
+from contextpress.jsonutil import json_body, try_parse_json
 from contextpress.models import ContentBlock, Conversation, Turn
 
 _VALID_ROLES = frozenset({"user", "assistant", "system", "tool", "function", "model"})
@@ -66,12 +66,7 @@ def _blocks_from_openai_style(items: list[dict[str, Any]]) -> list[ContentBlock]
             )
         elif t in ("tool_use", "tool_result"):
             raw = item.get("input") if t == "tool_use" else item.get("content", "")
-            if isinstance(raw, (dict, list)):
-                body = json.dumps(raw, separators=(",", ":"), ensure_ascii=False)
-            elif raw is None:
-                body = ""
-            else:
-                body = str(raw)
+            body = json_body(raw)
             blocks.append(ContentBlock(type=str(t), content=body, metadata=copy.deepcopy(item)))
         else:
             blocks.append(
@@ -106,10 +101,7 @@ def _blocks_to_openai_style(blocks: list[ContentBlock]) -> list[dict[str, Any]]:
             d["type"] = b.type
             parsed: Any = None
             if isinstance(b.content, str) and b.content.strip()[:1] in "{[":
-                try:
-                    parsed = json.loads(b.content)
-                except (json.JSONDecodeError, TypeError, ValueError):
-                    parsed = None
+                parsed = try_parse_json(b.content)
             if b.type == "tool_use":
                 if parsed is not None:
                     d["input"] = parsed
@@ -127,24 +119,6 @@ def _blocks_to_openai_style(blocks: list[ContentBlock]) -> list[dict[str, Any]]:
                 copy.deepcopy(b.metadata) if b.metadata else {"type": b.type, "content": b.content}
             )
     return out
-
-
-def _json_body(raw: Any) -> str:
-    if isinstance(raw, (dict, list)):
-        return json.dumps(raw, separators=(",", ":"), ensure_ascii=False)
-    if raw is None:
-        return ""
-    return str(raw)
-
-
-def _try_parse_json(text: str) -> Any:
-    s = text.strip()
-    if not s or s[0] not in "{[":
-        return None
-    try:
-        return json.loads(s)
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return None
 
 
 def _blocks_from_gemini_parts(parts: list[Any]) -> list[ContentBlock]:
@@ -165,7 +139,7 @@ def _blocks_from_gemini_parts(parts: list[Any]) -> list[ContentBlock]:
             blocks.append(
                 ContentBlock(
                     type="function_call",
-                    content=_json_body(args),
+                    content=json_body(args),
                     metadata=copy.deepcopy(item),
                 )
             )
@@ -173,7 +147,7 @@ def _blocks_from_gemini_parts(parts: list[Any]) -> list[ContentBlock]:
             blocks.append(
                 ContentBlock(
                     type="function_response",
-                    content=_json_body(fr.get("response")),
+                    content=json_body(fr.get("response")),
                     metadata=copy.deepcopy(item),
                 )
             )
@@ -206,7 +180,7 @@ def _blocks_to_gemini_parts(blocks: list[ContentBlock]) -> list[dict[str, Any]]:
                 else ("function_call" if "function_call" in d else "functionCall")
             )
             fc = dict(d.get(key) or {})
-            parsed = _try_parse_json(b.content) if isinstance(b.content, str) else None
+            parsed = try_parse_json(b.content) if isinstance(b.content, str) else None
             snake_args = "arguments" in fc and "args" not in fc
             orig_args = fc.get("arguments") if snake_args else fc.get("args")
             if parsed is not None:
@@ -234,7 +208,7 @@ def _blocks_to_gemini_parts(blocks: list[ContentBlock]) -> list[dict[str, Any]]:
                 else ("function_response" if "function_response" in d else "functionResponse")
             )
             fr = dict(d.get(key) or {})
-            parsed = _try_parse_json(b.content) if isinstance(b.content, str) else None
+            parsed = try_parse_json(b.content) if isinstance(b.content, str) else None
             if isinstance(fr.get("response"), str):
                 fr["response"] = b.content
             elif parsed is not None:

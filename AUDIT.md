@@ -11,7 +11,7 @@ ContextManager (core.py)
   → normalize_messages (normalizer.py)
   → apply_stage_selection (compression.py)
   → Pipeline.run (pipeline.py)
-      → filler → repetition → resolution → recency → budget
+      → structure → filler → repetition → resolution → recency → budget
       → optional Tier 2 LLM
   → denormalize_output
 ```
@@ -36,7 +36,7 @@ Profiles: `chat`, `rag_doc`, `agent`. Tier 1 deps: nltk, scikit-learn, sumy, tik
 | R1 | TF-IDF + cosine similarity copied in `repetition.py`, `recency.py`, `resolution.py` | Extract shared helper |
 | R2 | Token counting duplicated in `stats.py` and `budget.py` | Budget uses `stats` helpers |
 | R3 | `_bootstrap.py` downloads unused `stopwords`; warning mentions recency (doesn't use NLTK) | Trim packages; fix message |
-| R4 | Strategies use ad hoc `deepcopy` vs `clone_turn` | Prefer `clone_turn` where safe |
+| R4 | Strategies use ad hoc `deepcopy` vs `clone_turn` | Prefer `clone_turn` where safe — **0.6.9** |
 
 ### Test / fixture gaps (Phases 3–4)
 

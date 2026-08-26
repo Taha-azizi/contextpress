@@ -16,6 +16,7 @@ Always `git checkout dev` before making changes in this repo.
 | Stage presets | `contextpress/compression.py` (`STAGE_ORDER`, `VALID_STAGES`) |
 | Tier 1 stages | `contextpress/strategies/*.py` (incl. `structure`) |
 | Cost estimates | `contextpress/costs.py` |
+| JSON minify helpers | `contextpress/jsonutil.py` |
 | Product roadmap | `ROADMAP.md` |
 | Tier 2 | `contextpress/llm/` (`LLMBackend`, `adapters.py`) |
 | Custom stages | `contextpress/registry.py` + `ContextManager.register_stage()` |

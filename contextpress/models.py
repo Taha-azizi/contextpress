@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import copy
 from dataclasses import dataclass, field
 from datetime import datetime
 from typing import Any
@@ -61,3 +62,32 @@ class Conversation:
         if isinstance(turn.content, str):
             return bool(turn.content.strip())
         return any(b.type == "text" for b in turn.content)
+
+
+def clone_turn(t: Turn) -> Turn:
+    """Deep copy a turn (content, metadata, original_content)."""
+    if isinstance(t.content, str):
+        c: str | list[ContentBlock] = t.content
+    else:
+        c = copy.deepcopy(t.content)
+    return Turn(
+        role=t.role,
+        content=c,
+        timestamp=t.timestamp,
+        metadata=copy.deepcopy(t.metadata),
+        importance=t.importance,
+        resolved=t.resolved,
+        compressed=t.compressed,
+        original_content=(
+            copy.deepcopy(t.original_content) if t.original_content is not None else None
+        ),
+    )
+
+
+def clone_conversation(conversation: Conversation) -> Conversation:
+    """Deep copy a conversation and all of its turns."""
+    return Conversation(
+        turns=[clone_turn(t) for t in conversation.turns],
+        type=conversation.type,
+        metadata=copy.deepcopy(conversation.metadata),
+    )

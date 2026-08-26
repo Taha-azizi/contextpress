@@ -3,10 +3,10 @@
 from __future__ import annotations
 
 import copy
-import json
 import re
 
-from contextpress.models import Conversation, Turn
+from contextpress.jsonutil import try_minify_json
+from contextpress.models import Conversation, Turn, clone_turn
 from contextpress.normalizer import apply_text_to_turn, extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
 from contextpress.tools import minify_tool_fields
@@ -15,17 +15,6 @@ _CODE_FENCE = re.compile(r"(```[\s\S]*?```)", re.MULTILINE)
 _MULTI_BLANK = re.compile(r"\n{3,}")
 _MULTI_SPACE = re.compile(r"[ \t]{2,}")
 _FENCE_JSON_LANGS = frozenset({"", "json", "jsonc"})
-
-
-def _try_minify_json(text: str) -> str | None:
-    s = text.strip()
-    if not s or s[0] not in "{[":
-        return None
-    try:
-        obj = json.loads(s)
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return None
-    return json.dumps(obj, separators=(",", ":"), ensure_ascii=False)
 
 
 def _dedupe_consecutive_lines(text: str) -> str:
@@ -66,7 +55,7 @@ def _compact_fenced(segment: str) -> str:
     lang = tag_raw.strip().split()[0].lower() if tag_raw.strip() else ""
     if lang not in _FENCE_JSON_LANGS:
         return segment
-    mini = _try_minify_json(body)
+    mini = try_minify_json(body)
     if mini is None:
         return segment
     return f"```{tag_raw}\n{mini}\n```"
@@ -75,7 +64,7 @@ def _compact_fenced(segment: str) -> str:
 def _compact_segment(segment: str, *, aggressiveness: float) -> str:
     if segment.startswith("```"):
         return _compact_fenced(segment)
-    mini = _try_minify_json(segment)
+    mini = try_minify_json(segment)
     if mini is not None:
         return mini
     return _compact_plain(segment, aggressiveness=aggressiveness)
@@ -85,7 +74,7 @@ def compact_structure_text(text: str, *, aggressiveness: float = 0.5) -> str:
     """Minify JSON blobs and tighten whitespace / repeated log lines."""
     if not text or not text.strip():
         return text
-    whole = _try_minify_json(text)
+    whole = try_minify_json(text)
     if whole is not None:
         return whole
     parts = _CODE_FENCE.split(text)
@@ -103,14 +92,14 @@ class StructureStrategy(BaseStrategy):
         new_turns: list[Turn] = []
         for turn in conversation.turns:
             if self._is_protected(turn):
-                new_turns.append(copy.deepcopy(turn))
+                new_turns.append(clone_turn(turn))
                 continue
             text = extract_text_for_processing(turn)
             compacted = compact_structure_text(text, aggressiveness=self.aggressiveness)
             if compacted != text:
                 nt = apply_text_to_turn(turn, compacted)
             else:
-                nt = copy.deepcopy(turn)
+                nt = clone_turn(turn)
             new_turns.append(minify_tool_fields(nt))
         return Conversation(
             turns=new_turns,

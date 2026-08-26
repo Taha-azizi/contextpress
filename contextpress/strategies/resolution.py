@@ -5,7 +5,7 @@ import re
 
 import nltk
 
-from contextpress.models import Conversation, Turn
+from contextpress.models import Conversation, Turn, clone_conversation, clone_turn
 from contextpress.normalizer import extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
 from contextpress.text_sim import tfidf_cosine
@@ -124,7 +124,7 @@ class ResolutionStrategy(BaseStrategy):
 
     def process(self, conversation: Conversation) -> Conversation:
         if conversation.type == "rag_doc":
-            return copy.deepcopy(conversation)
+            return clone_conversation(conversation)
 
         turns = conversation.turns
         # Find last Layer A resolution index (prefer later collapses)
@@ -141,22 +141,22 @@ class ResolutionStrategy(BaseStrategy):
                 break
 
         if res_idx < 0:
-            return copy.deepcopy(conversation)
+            return clone_conversation(conversation)
 
         if res_idx == 0:
-            return copy.deepcopy(conversation)
+            return clone_conversation(conversation)
 
         thread_start = _find_thread_start(conversation, res_idx)
         while thread_start < len(turns) and turns[thread_start].role == "system":
             thread_start += 1
         if thread_start > res_idx:
-            return copy.deepcopy(conversation)
+            return clone_conversation(conversation)
         if res_idx - thread_start < 1:
-            return copy.deepcopy(conversation)
+            return clone_conversation(conversation)
 
         slice_turns = turns[thread_start : res_idx + 1]
         if len(slice_turns) < 2:
-            return copy.deepcopy(conversation)
+            return clone_conversation(conversation)
 
         res_text = extract_text_for_processing(turns[res_idx])
 
@@ -173,7 +173,7 @@ class ResolutionStrategy(BaseStrategy):
                 for i in range(thread_start, scan_end + 1)
             )
             if not (has_user and has_asst):
-                return copy.deepcopy(conversation)
+                return clone_conversation(conversation)
 
         elif self.conv_type == "agent":
             if not any(
@@ -181,7 +181,7 @@ class ResolutionStrategy(BaseStrategy):
                 for i in range(thread_start, res_idx + 1)
                 if not self._is_protected(turns[i])
             ):
-                return copy.deepcopy(conversation)
+                return clone_conversation(conversation)
 
         subj = _noun_subject(res_text)
         _, desc = _extract_subject_description(res_text)
@@ -198,10 +198,10 @@ class ResolutionStrategy(BaseStrategy):
             collapse_end = res_idx + 1
 
         if any(preserve_structured_turn(turns[i]) for i in range(thread_start, collapse_end + 1)):
-            return copy.deepcopy(conversation)
+            return clone_conversation(conversation)
 
         collapsed = collapse_end - thread_start + 1
-        new_turns = [copy.deepcopy(t) for t in turns[:thread_start]]
+        new_turns = [clone_turn(t) for t in turns[:thread_start]]
         new_turns.append(
             Turn(
                 role="system",
@@ -212,7 +212,7 @@ class ResolutionStrategy(BaseStrategy):
                 compressed=False,
             )
         )
-        new_turns.extend(copy.deepcopy(t) for t in turns[collapse_end + 1 :])
+        new_turns.extend(clone_turn(t) for t in turns[collapse_end + 1 :])
 
         return Conversation(
             turns=new_turns,

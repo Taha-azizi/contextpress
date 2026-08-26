@@ -6,8 +6,8 @@ CONTEXTPRESS BEHAVIOR CONTRACT
    be met (emits a warning).
 2. Input is NEVER mutated. Always return new objects.
 3. Output format ALWAYS mirrors input format.
-4. Most recent 3 non-system turns are NEVER compressed by Stage 4.
-5. Last 2 non-system turns are NEVER removed by Stage 5.
+4. Most recent 3 non-system turns are NEVER compressed by recency.
+5. Last 2 non-system turns are NEVER removed by budget.
 6. Resolution requires BOTH sides in chat mode. One side is not enough.
 7. In repetition detection, the MORE RECENT turn ALWAYS wins.
 8. Tier 1 (no LLM) behavior is ALWAYS deterministic. Tests must pass consistently.
@@ -26,7 +26,7 @@ import warnings
 from typing import TYPE_CHECKING, Any
 
 from contextpress.compression import STAGE_ORDER
-from contextpress.models import Conversation, Turn
+from contextpress.models import Conversation, Turn, clone_conversation, clone_turn
 from contextpress.normalizer import extract_text_for_processing
 from contextpress.profiles import Profile, StageConfig
 from contextpress.registry import (
@@ -47,33 +47,6 @@ if TYPE_CHECKING:
     from contextpress.llm.base import LLMBackend
 
 VALID_LLM_MODES = frozenset({"replace_all", "dedupe_only", "summarize_only"})
-
-
-def clone_turn(t: Turn) -> Turn:
-    if isinstance(t.content, str):
-        c = t.content
-    else:
-        c = copy.deepcopy(t.content)
-    return Turn(
-        role=t.role,
-        content=c,
-        timestamp=t.timestamp,
-        metadata=copy.deepcopy(t.metadata),
-        importance=t.importance,
-        resolved=t.resolved,
-        compressed=t.compressed,
-        original_content=(
-            copy.deepcopy(t.original_content) if t.original_content is not None else None
-        ),
-    )
-
-
-def clone_conversation(conversation: Conversation) -> Conversation:
-    return Conversation(
-        turns=[clone_turn(t) for t in conversation.turns],
-        type=conversation.type,
-        metadata=copy.deepcopy(conversation.metadata),
-    )
 
 
 class Pipeline:

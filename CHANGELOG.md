@@ -4,6 +4,14 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.9] - 2026-08-25
+
+- **Refactor (no intended behavior change)** — shared JSON helpers in
+  ``contextpress.jsonutil``; ``clone_turn`` / ``clone_conversation`` live on the
+  models module and are used by Tier 1 stages (AUDIT R4).
+- Tool-field minify is split into small helpers; pipeline contract refers to
+  recency/budget by name (not stale stage numbers).
+
 ## [0.6.8] - 2026-08-24
 
 - **Gemini function calling** — ``parts`` with ``functionCall`` / ``functionResponse``

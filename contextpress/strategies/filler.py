@@ -3,7 +3,7 @@ from __future__ import annotations
 import copy
 import re
 
-from contextpress.models import Conversation, Turn
+from contextpress.models import Conversation, Turn, clone_turn
 from contextpress.normalizer import apply_text_to_turn, extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
 from contextpress.tools import has_tool_marker
@@ -137,7 +137,7 @@ class FillerStrategy(BaseStrategy):
         new_turns: list[Turn] = []
         for turn in conversation.turns:
             if self._is_protected(turn):
-                new_turns.append(copy.deepcopy(turn))
+                new_turns.append(clone_turn(turn))
                 continue
 
             if self.conv_type == "rag_doc":
@@ -147,7 +147,7 @@ class FillerStrategy(BaseStrategy):
                 continue
 
             if has_tool_marker(turn):
-                new_turns.append(copy.deepcopy(turn))
+                new_turns.append(clone_turn(turn))
                 continue
 
             text = extract_text_for_processing(turn)
@@ -160,14 +160,14 @@ class FillerStrategy(BaseStrategy):
             if not new_text.strip():
                 # Never drop user turns entirely (filler-only user messages stay).
                 if turn.role == "user":
-                    new_turns.append(copy.deepcopy(turn))
+                    new_turns.append(clone_turn(turn))
                 continue
 
             if new_text != text:
                 nt = apply_text_to_turn(turn, new_text)
                 new_turns.append(nt)
             else:
-                new_turns.append(copy.deepcopy(turn))
+                new_turns.append(clone_turn(turn))
 
         return Conversation(
             turns=new_turns,
@@ -182,4 +182,4 @@ class FillerStrategy(BaseStrategy):
             return None
         if new_text != text:
             return apply_text_to_turn(turn, new_text)
-        return copy.deepcopy(turn)
+        return clone_turn(turn)

@@ -7,7 +7,7 @@ from sumy.nlp.tokenizers import Tokenizer
 from sumy.parsers.plaintext import PlaintextParser
 from sumy.summarizers.lsa import LsaSummarizer
 
-from contextpress.models import Conversation, Turn
+from contextpress.models import Conversation, Turn, clone_conversation, clone_turn
 from contextpress.normalizer import apply_text_to_turn, extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
 from contextpress.text_sim import tfidf_cosine
@@ -67,7 +67,7 @@ class RecencyStrategy(BaseStrategy):
         ns_indices = [i for i, t in enumerate(turns) if not self._is_protected(t)]
         n_ns = len(ns_indices)
         if n_ns == 0:
-            return copy.deepcopy(conversation)
+            return clone_conversation(conversation)
 
         threshold = _recency_threshold(self.aggressiveness)
         protected_ns = set(ns_indices[-3:]) if n_ns >= 1 else set()
@@ -86,13 +86,13 @@ class RecencyStrategy(BaseStrategy):
             t = turns[i]
 
             if i in protected_ns:
-                processed_by_ns.append(copy.deepcopy(t))
+                processed_by_ns.append(clone_turn(t))
                 continue
 
             text = extract_text_for_processing(t)
 
             if preserve_structured_turn(t):
-                processed_by_ns.append(copy.deepcopy(t))
+                processed_by_ns.append(clone_turn(t))
                 continue
 
             if self.conv_type == "rag_doc":
@@ -103,20 +103,20 @@ class RecencyStrategy(BaseStrategy):
                 should_compress = recency_score < threshold
 
             if not should_compress:
-                processed_by_ns.append(copy.deepcopy(t))
+                processed_by_ns.append(clone_turn(t))
                 continue
 
             n_sent = _sentence_count(text)
             tgt = _target_sentence_count(n_sent)
             if tgt is None:
-                processed_by_ns.append(copy.deepcopy(t))
+                processed_by_ns.append(clone_turn(t))
                 continue
 
             new_text = _summarize_text(text, tgt)
             if new_text.strip() != text.strip():
                 processed_by_ns.append(apply_text_to_turn(t, new_text.strip()))
             else:
-                processed_by_ns.append(copy.deepcopy(t))
+                processed_by_ns.append(clone_turn(t))
 
         by_idx = dict(zip(ns_indices, processed_by_ns, strict=True))
         out: list[Turn] = []
@@ -124,7 +124,7 @@ class RecencyStrategy(BaseStrategy):
             if i in by_idx:
                 out.append(by_idx[i])
             else:
-                out.append(copy.deepcopy(t))
+                out.append(clone_turn(t))
         return Conversation(
             turns=out, type=conversation.type, metadata=copy.deepcopy(conversation.metadata)
         )

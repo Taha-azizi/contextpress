@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import copy
 
-from contextpress.models import Conversation, Turn
+from contextpress.models import Conversation, Turn, clone_turn
 from contextpress.normalizer import extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
 from contextpress.text_sim import tfidf_similarity_matrix
@@ -81,7 +81,7 @@ class RepetitionStrategy(BaseStrategy):
         for i, t in enumerate(turns):
             if i in indices_to_drop:
                 continue
-            new_turns.append(copy.deepcopy(t))
+            new_turns.append(clone_turn(t))
 
         return Conversation(
             turns=new_turns,

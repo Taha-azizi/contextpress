@@ -5,7 +5,7 @@ import warnings
 
 import tiktoken
 
-from contextpress.models import Conversation, Turn
+from contextpress.models import Conversation, Turn, clone_turn
 from contextpress.stats import count_turn_tokens, get_encoding
 from contextpress.strategies.base import BaseStrategy
 from contextpress.tools import tool_group_indices
@@ -15,9 +15,9 @@ def _truncate_system_turn(turn: Turn, encoding: tiktoken.Encoding, max_tokens: i
     if isinstance(turn.content, str):
         tokens = encoding.encode(turn.content)
         if len(tokens) <= max_tokens:
-            return copy.deepcopy(turn)
+            return clone_turn(turn)
         new_text = encoding.decode(tokens[:max_tokens])
-        nt = copy.deepcopy(turn)
+        nt = clone_turn(turn)
         nt.content = new_text
         nt.compressed = True
         if nt.original_content is None:
@@ -32,7 +32,7 @@ def _truncate_system_turn(turn: Turn, encoding: tiktoken.Encoding, max_tokens: i
                 nb.content = encoding.decode(tokens[:max_tokens])
                 blocks[i] = nb
             break
-    nt = copy.deepcopy(turn)
+    nt = clone_turn(turn)
     nt.content = blocks
     nt.compressed = True
     if nt.original_content is None:
@@ -55,7 +55,7 @@ class BudgetStrategy(BaseStrategy):
 
     def process(self, conversation: Conversation) -> Conversation:
         enc = get_encoding(self.model)
-        turns: list[Turn] = [copy.deepcopy(t) for t in conversation.turns]
+        turns: list[Turn] = [clone_turn(t) for t in conversation.turns]
 
         def total_toks(ts: list[Turn]) -> int:
             return sum(count_turn_tokens(t, enc) for t in ts)

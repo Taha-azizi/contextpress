@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
+from contextpress.jsonutil import dumps_compact, minify_json_string, try_parse_json
 from contextpress.models import ContentBlock, Turn
 from contextpress.normalizer import extract_text_for_processing
 
@@ -67,13 +67,7 @@ def is_structured_text(text: str) -> bool:
         return False
     if "```json" in s.lower():
         return True
-    if s[0] in "{[":
-        try:
-            json.loads(s)
-            return True
-        except (json.JSONDecodeError, TypeError, ValueError):
-            return False
-    return False
+    return try_parse_json(s) is not None
 
 
 def preserve_structured_turn(turn: Turn) -> bool:
@@ -83,17 +77,13 @@ def preserve_structured_turn(turn: Turn) -> bool:
     return is_structured_text(extract_text_for_processing(turn))
 
 
-def _ids_from_blocks(turn: Turn, *, block_type: str, id_key: str) -> list[str]:
-    ids: list[str] = []
-    if not isinstance(turn.content, list):
-        return ids
-    for block in turn.content:
-        if block.type != block_type:
-            continue
-        cid = (block.metadata or {}).get(id_key)
-        if cid is not None:
-            ids.append(str(cid))
-    return ids
+def _remember_id(ids: list[str], seen: set[str], cid: str | None) -> None:
+    if cid is None:
+        return
+    sid = str(cid)
+    if sid not in seen:
+        seen.add(sid)
+        ids.append(sid)
 
 
 def _nested_tool_id(block: ContentBlock, *keys: str) -> str | None:
@@ -122,28 +112,16 @@ def assistant_tool_call_ids(turn: Turn) -> list[str]:
         if not isinstance(calls, list):
             continue
         for call in calls:
-            if not isinstance(call, dict):
-                continue
-            cid = call.get("id")
-            if cid is None:
-                continue
-            sid = str(cid)
-            if sid not in seen:
-                seen.add(sid)
-                ids.append(sid)
+            if isinstance(call, dict):
+                _remember_id(ids, seen, call.get("id"))
         break
-    for cid in _ids_from_blocks(turn, block_type="tool_use", id_key="id"):
-        if cid not in seen:
-            seen.add(cid)
-            ids.append(cid)
-    if isinstance(turn.content, list):
-        for block in turn.content:
-            if block.type != "function_call":
-                continue
-            cid = _nested_tool_id(block, "functionCall", "function_call")
-            if cid and cid not in seen:
-                seen.add(cid)
-                ids.append(cid)
+    if not isinstance(turn.content, list):
+        return ids
+    for block in turn.content:
+        if block.type == "tool_use":
+            _remember_id(ids, seen, (block.metadata or {}).get("id"))
+        elif block.type == "function_call":
+            _remember_id(ids, seen, _nested_tool_id(block, "functionCall", "function_call"))
     return ids
 
 
@@ -152,13 +130,14 @@ def result_tool_call_id(turn: Turn) -> str | None:
         tid = layer.get("tool_call_id")
         if tid is not None:
             return str(tid)
-    block_ids = _ids_from_blocks(turn, block_type="tool_result", id_key="tool_use_id")
-    if block_ids:
-        return block_ids[0]
-    if isinstance(turn.content, list):
-        for block in turn.content:
-            if block.type != "function_response":
-                continue
+    if not isinstance(turn.content, list):
+        return None
+    for block in turn.content:
+        if block.type == "tool_result":
+            cid = (block.metadata or {}).get("tool_use_id")
+            if cid is not None:
+                return str(cid)
+        elif block.type == "function_response":
             cid = _nested_tool_id(block, "functionResponse", "function_response")
             if cid:
                 return cid
@@ -171,7 +150,7 @@ def tool_payload_text(turn: Turn) -> str:
     for layer in _layers(turn):
         calls = layer.get("tool_calls")
         if isinstance(calls, list) and calls:
-            parts.append(json.dumps(calls, ensure_ascii=False))
+            parts.append(dumps_compact(calls))
             break
     if isinstance(turn.content, list):
         for block in turn.content:
@@ -182,15 +161,66 @@ def tool_payload_text(turn: Turn) -> str:
     return "\n".join(parts)
 
 
-def _minify_json_string(text: str) -> str:
-    s = text.strip()
-    if not s or s[0] not in "{[":
-        return text
-    try:
-        obj = json.loads(s)
-    except (json.JSONDecodeError, TypeError, ValueError):
-        return text
-    return json.dumps(obj, separators=(",", ":"), ensure_ascii=False)
+def _minify_str_field(d: dict[str, Any], key: str) -> bool:
+    val = d.get(key)
+    if not isinstance(val, str):
+        return False
+    mini = minify_json_string(val)
+    if mini == val:
+        return False
+    d[key] = mini
+    return True
+
+
+def _compact_calls(calls: Any) -> tuple[Any, bool]:
+    if not isinstance(calls, list):
+        return calls, False
+    changed = False
+    out = []
+    for call in calls:
+        if not isinstance(call, dict):
+            out.append(call)
+            continue
+        c = dict(call)
+        fn = c.get("function")
+        if isinstance(fn, dict):
+            fn = dict(fn)
+            if _minify_str_field(fn, "arguments"):
+                changed = True
+            c["function"] = fn
+        out.append(c)
+    return out, changed
+
+
+def _compact_block_dict(item: dict[str, Any]) -> tuple[dict[str, Any], bool]:
+    changed = False
+    out = dict(item)
+    kind = out.get("type")
+    if kind == "tool_use" and _minify_str_field(out, "input"):
+        changed = True
+    if kind == "tool_result" and _minify_str_field(out, "content"):
+        changed = True
+    for call_key, arg_keys in (
+        ("functionCall", ("args", "arguments")),
+        ("function_call", ("args", "arguments")),
+    ):
+        payload = out.get(call_key)
+        if not isinstance(payload, dict):
+            continue
+        payload = dict(payload)
+        for ak in arg_keys:
+            if _minify_str_field(payload, ak):
+                changed = True
+        out[call_key] = payload
+    for resp_key in ("functionResponse", "function_response"):
+        payload = out.get(resp_key)
+        if not isinstance(payload, dict):
+            continue
+        payload = dict(payload)
+        if _minify_str_field(payload, "response"):
+            changed = True
+        out[resp_key] = payload
+    return out, changed
 
 
 def minify_tool_fields(turn: Turn) -> Turn:
@@ -202,92 +232,43 @@ def minify_tool_fields(turn: Turn) -> Turn:
     new_meta = dict(meta)
     new_content: str | list[ContentBlock] = turn.content
 
-    def _compact_calls(calls: Any) -> Any:
-        nonlocal changed
-        if not isinstance(calls, list):
-            return calls
-        out = []
-        for call in calls:
-            if not isinstance(call, dict):
-                out.append(call)
-                continue
-            c = dict(call)
-            fn = c.get("function")
-            if isinstance(fn, dict):
-                fn = dict(fn)
-                args = fn.get("arguments")
-                if isinstance(args, str):
-                    mini = _minify_json_string(args)
-                    if mini != args:
-                        fn["arguments"] = mini
-                        changed = True
-                c["function"] = fn
-            out.append(c)
-        return out
-
-    def _compact_block_dict(item: dict[str, Any]) -> dict[str, Any]:
-        nonlocal changed
-        kind = item.get("type")
-        out = dict(item)
-        if kind == "tool_use" and isinstance(out.get("input"), str):
-            mini = _minify_json_string(out["input"])
-            if mini != out["input"]:
-                out["input"] = mini
-                changed = True
-        if kind == "tool_result" and isinstance(out.get("content"), str):
-            mini = _minify_json_string(out["content"])
-            if mini != out["content"]:
-                out["content"] = mini
-                changed = True
-        for call_key, arg_keys in (
-            ("functionCall", ("args", "arguments")),
-            ("function_call", ("args", "arguments")),
-        ):
-            payload = out.get(call_key)
-            if not isinstance(payload, dict):
-                continue
-            payload = dict(payload)
-            for ak in arg_keys:
-                if isinstance(payload.get(ak), str):
-                    mini = _minify_json_string(payload[ak])
-                    if mini != payload[ak]:
-                        payload[ak] = mini
-                        changed = True
-            out[call_key] = payload
-        for resp_key in ("functionResponse", "function_response"):
-            payload = out.get(resp_key)
-            if not isinstance(payload, dict):
-                continue
-            payload = dict(payload)
-            if isinstance(payload.get("response"), str):
-                mini = _minify_json_string(payload["response"])
-                if mini != payload["response"]:
-                    payload["response"] = mini
-                    changed = True
-            out[resp_key] = payload
-        return out
-
     if "tool_calls" in new_meta:
-        new_meta["tool_calls"] = _compact_calls(new_meta["tool_calls"])
+        compacted, ch = _compact_calls(new_meta["tool_calls"])
+        new_meta["tool_calls"] = compacted
+        changed = changed or ch
     orig = new_meta.get("_original_dict")
     if isinstance(orig, dict):
         orig = dict(orig)
         if "tool_calls" in orig:
-            orig["tool_calls"] = _compact_calls(orig["tool_calls"])
+            compacted, ch = _compact_calls(orig["tool_calls"])
+            orig["tool_calls"] = compacted
+            changed = changed or ch
         if turn.role in _RESULT_ROLES and isinstance(orig.get("content"), str):
             target = turn.content if isinstance(turn.content, str) else orig["content"]
-            mini = _minify_json_string(target)
+            mini = minify_json_string(target)
             if mini != orig["content"]:
                 orig["content"] = mini
                 changed = True
         if isinstance(orig.get("content"), list):
-            orig["content"] = [
-                _compact_block_dict(x) if isinstance(x, dict) else x for x in orig["content"]
-            ]
+            items = []
+            for x in orig["content"]:
+                if isinstance(x, dict):
+                    d, ch = _compact_block_dict(x)
+                    items.append(d)
+                    changed = changed or ch
+                else:
+                    items.append(x)
+            orig["content"] = items
         if isinstance(orig.get("parts"), list):
-            orig["parts"] = [
-                _compact_block_dict(x) if isinstance(x, dict) else x for x in orig["parts"]
-            ]
+            items = []
+            for x in orig["parts"]:
+                if isinstance(x, dict):
+                    d, ch = _compact_block_dict(x)
+                    items.append(d)
+                    changed = changed or ch
+                else:
+                    items.append(x)
+            orig["parts"] = items
         new_meta["_original_dict"] = orig
 
     if isinstance(turn.content, list):
@@ -302,12 +283,12 @@ def minify_tool_fields(turn: Turn) -> Turn:
                 new_blocks.append(block)
                 continue
             mini = (
-                _minify_json_string(block.content)
+                minify_json_string(block.content)
                 if isinstance(block.content, str)
                 else block.content
             )
-            bmeta = _compact_block_dict(dict(block.metadata or {}))
-            if mini != block.content:
+            bmeta, ch = _compact_block_dict(dict(block.metadata or {}))
+            if mini != block.content or ch:
                 changed = True
             new_blocks.append(
                 ContentBlock(

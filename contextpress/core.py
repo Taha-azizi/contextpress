@@ -7,8 +7,9 @@ from typing import TYPE_CHECKING, Any
 
 from contextpress.compression import apply_stage_selection, normalize_compression_level
 from contextpress.costs import CostEstimate, estimate_token_cost
+from contextpress.models import clone_conversation
 from contextpress.normalizer import denormalize_output, normalize_messages
-from contextpress.pipeline import VALID_LLM_MODES, Pipeline, clone_conversation
+from contextpress.pipeline import VALID_LLM_MODES, Pipeline
 from contextpress.profiles import PROFILES, Profile, StageConfig
 from contextpress.registry import register_stage as _register_stage
 from contextpress.stats import CompressionResult, CompressionStats, count_conversation_tokens
