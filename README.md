@@ -36,7 +36,7 @@ pip install -e .
 ```python
 from contextpress import ContextManager
 
-# Default compression is "medium" (filler + repetition + recency); see below.
+# Default compression is "medium" (includes recency); see below.
 cm = ContextManager(type="chat")
 messages = [{"role": "user", "content": "Hello!"}]
 compressed = cm.compress(messages, token_budget=2000)
@@ -122,7 +122,7 @@ out = ContextManager().compress(
     token_budget=500,
 )
 
-# Lighter pass: only filler + repetition (+ budget if token_budget set)
+# Lighter pass: structure + lexical + filler + abbrev + alias + repetition (+ budget if set)
 out = ContextManager(compression="low").compress(messages, token_budget=500)
 
 # Full NLP pipeline for this call (+ budget if token_budget set)
@@ -162,15 +162,31 @@ Runnable agent example: [`examples/agent_pipeline.py`](examples/agent_pipeline.p
 OpenAI tools example: [`examples/openai_tools_compress.py`](examples/openai_tools_compress.py).
 Anthropic tools example: [`examples/anthropic_tools_compress.py`](examples/anthropic_tools_compress.py).
 Gemini tools example: [`examples/gemini_tools_compress.py`](examples/gemini_tools_compress.py).
+Low-preset wording stages: [`examples/low_abbrev_alias.py`](examples/low_abbrev_alias.py).
 
 ## Pipeline stages
 
 1. **Structure** (0.6+) — Minifies JSON blobs (including markdown `` ```json `` fences, 0.6.5+) and tightens whitespace / repeated log lines inside non-system turns (stdlib only; great for agent tool payloads and RAG chunks).
-2. **Filler** — Removes low-semantic filler words and (in chat/agent) drops acknowledgement-only assistant turns.
-3. **Repetition** — TF-IDF cosine similarity; keeps the more recent of similar turns. Tool-call turns are not dropped (0.6.6+).
-4. **Resolution** — Collapses agreed threads into a single `RESOLVED:` synthetic system turn (chat/agent only). Threads that still contain tool/JSON turns are left intact (0.6.6+).
-5. **Recency** — Extractively compresses older turns (or low-relevance chunks in `rag_doc`) while preserving the latest context. JSON blobs, `` ```json `` fences, and tool turns are not summarized (0.6.6+).
-6. **Budget** — Enforces a hard token limit with `tiktoken`, removing oldest turns first while protecting system prompts and recent turns. Assistant ``tool_calls`` and matching ``role: tool`` results are dropped together (0.6.4+); Anthropic ``tool_use``/``tool_result`` and Gemini ``functionCall``/``functionResponse`` pairs stay intact the same way (0.6.7+/0.6.8+).
+2. **Lexical** (0.6.10+) — Replaces multi-token words with fewer-token near-synonyms from a frozen, encoding-specific dictionary (`utilisation` → `use`). Chat and agent only (off for `rag_doc`). Skips system turns, JSON blobs, `` ```json `` fences, and tool call/result turns. Only keeps a swap when the turn's token count falls. **On `low` / `medium` / `high` for chat and agent.** This **changes wording**, not just removes content — use judgment on tone-sensitive text. Encoding follows `ContextManager(model=...)` (`cl100k_base` by default, `o200k_base` for gpt-4o-class models). Rebuild dictionaries with `python scripts/build_lexical_dict.py`.
+
+```python
+# Exact stages (preset ignored); lexical/abbrev/alias are also on chat/agent presets
+out = ContextManager().compress(
+    messages,
+    token_budget=500,
+    stages=["lexical", "filler", "abbrev", "alias", "repetition", "budget"],
+)
+```
+
+Runnable demo: [`examples/low_abbrev_alias.py`](examples/low_abbrev_alias.py).
+3. **Filler** — Removes low-semantic filler words / empty hedges (aggressive discourse strip) and (in chat/agent) drops acknowledgement-only assistant turns. JSON and tool turns are left unmodified.
+4. **Abbrev** (0.6.10+) — Replaces ~300 common long forms with shorter equivalents when that actually reduces tokens (`due to the fact that` → `because`, `in order to` → `to`, `application programming interface` → `API`). Chat/agent only (off for `rag_doc`). Skips system / JSON / tool turns. Some popular shortcuts (e.g. `for example` → `e.g.`) are skipped when they do not shrink BPE count.
+5. **Alias** (0.6.10+) — Finds multi-word expressions that appear **3+ times** in the same chat, introduces them once as `Phrase (ABBR)`, then uses `ABBR` afterward (e.g. `Context Press (CP)` … `CP`). Chat/agent only. Skips system / JSON / tool turns. Reverts if the whole conversation would grow.
+6. **Repetition** — TF-IDF cosine similarity; keeps the more recent of similar turns. Tool-call turns are not dropped (0.6.6+).
+7. **Resolution** — Collapses agreed threads into a single `RESOLVED:` synthetic system turn (chat/agent only). Threads that still contain tool/JSON turns are left intact (0.6.6+).
+8. **Trim** (0.6.10+) — Drops the middle of a long thread. Keeps the opening turns, the last three non-system turns, and any tool call/result groups that sat in the gap. Short chats are unchanged. Runs after resolution so completed threads can still collapse. **Not in the ``low`` preset**; ``medium`` / ``high``, or pass ``stages=`` that includes ``trim``.
+9. **Recency** — Extractively compresses older turns (or low-relevance chunks in `rag_doc`) while preserving the latest context. JSON blobs, `` ```json `` fences, and tool turns are not summarized (0.6.6+).
+10. **Budget** — Enforces a hard token limit with `tiktoken`, removing oldest turns first while protecting system prompts and recent turns. Assistant ``tool_calls`` and matching ``role: tool`` results are dropped together (0.6.4+); Anthropic ``tool_use``/``tool_result`` and Gemini ``functionCall``/``functionResponse`` pairs stay intact the same way (0.6.7+/0.6.8+).
 
 **Cost estimate** (0.6+, approximate list prices for planning):
 
@@ -220,7 +236,7 @@ See [`ROADMAP.md`](ROADMAP.md) for positioning vs heavier compression stacks and
 
 | | **Tier 1** (always available) | **Tier 2** (optional) |
 |---|-------------------------------|------------------------|
-| **What** | Pipeline stages: structure, filler, repetition, resolution, recency, budget | `LLMBackend`: semantic `deduplicate` + `summarize` after Tier 1 |
+| **What** | Pipeline stages: structure, lexical, filler, abbrev, alias, repetition, trim, resolution, recency, budget | `LLMBackend`: semantic `deduplicate` + `summarize` after Tier 1 |
 | **Where in code** | `contextpress/strategies/`, orchestrated by `pipeline.py` | `contextpress/llm/` (`base.py`, `adapters.py`) |
 | **Techniques** | Rules, TF–IDF, cosine similarity, NLTK, Sumy extractive summarization, tiktoken | Your provider’s chat/completions API (you supply the client) |
 | **API key** | None | Required for your chosen provider (OpenAI, Anthropic, …) |
@@ -235,13 +251,13 @@ See [`ROADMAP.md`](ROADMAP.md) for positioning vs heavier compression stacks and
 
 | Preset | Non-budget stages enabled |
 |--------|-----------------------------|
-| **low** | filler, repetition |
-| **medium** | filler, repetition, recency |
-| **high** | filler, repetition, resolution, recency |
+| **low** | structure, lexical, filler, abbrev, alias, repetition |
+| **medium** | structure, lexical, filler, abbrev, alias, repetition, trim, recency |
+| **high** | structure, lexical, filler, abbrev, alias, repetition, trim, resolution, recency |
 
 The **budget** stage is separate: if you pass **`token_budget=<int>`**, the budget stage runs as well (unless you opt out with `disable=["budget"]` or omit `"budget"` from an explicit `stages=` list). If `token_budget` is `None`, the budget stage does not run.
 
-Presets are **merged with the context profile** (for example, **resolution stays off** for `rag_doc` even on `high`, unless you pass an explicit `stages=` list that includes `resolution`).
+Presets are **merged with the context profile** (for example, **resolution**, **lexical**, **abbrev**, and **alias** stay off for `rag_doc` even on `high`, unless you pass an explicit `stages=` list that includes those names).
 
 ```python
 from contextpress import ContextManager

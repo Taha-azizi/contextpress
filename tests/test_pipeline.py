@@ -255,7 +255,7 @@ def test_ollama_backend_summarize_warns_on_error():
             b.summarize("x" * 2000, 100)
 
 
-def test_preset_low_enables_filler_and_repetition_only():
+def test_preset_low_enables_lexical_filler_repetition():
     base = copy.deepcopy(PROFILES["chat"])
     p = copy.deepcopy(base)
     apply_stage_selection(
@@ -266,8 +266,10 @@ def test_preset_low_enables_filler_and_repetition_only():
         disable=None,
         token_budget=None,
     )
-    assert p.structure.enabled and p.filler.enabled and p.repetition.enabled
+    assert p.structure.enabled and p.lexical.enabled and p.filler.enabled and p.repetition.enabled
+    assert p.abbrev.enabled and p.alias.enabled
     assert not p.resolution.enabled and not p.recency.enabled and not p.budget.enabled
+    assert not p.trim.enabled
 
 
 def test_preset_medium_adds_recency():
@@ -281,7 +283,9 @@ def test_preset_medium_adds_recency():
         disable=None,
         token_budget=None,
     )
-    assert p.structure.enabled and p.filler.enabled and p.repetition.enabled and p.recency.enabled
+    assert p.structure.enabled and p.lexical.enabled and p.filler.enabled and p.repetition.enabled
+    assert p.abbrev.enabled and p.alias.enabled
+    assert p.recency.enabled and p.trim.enabled
     assert not p.resolution.enabled
 
 
@@ -297,6 +301,8 @@ def test_preset_high_respects_rag_doc_resolution_off():
         token_budget=None,
     )
     assert not p.resolution.enabled
+    assert not p.lexical.enabled
+    assert not p.abbrev.enabled and not p.alias.enabled
     assert p.structure.enabled and p.filler.enabled and p.recency.enabled
 
 
@@ -312,7 +318,8 @@ def test_explicit_stages_list():
         token_budget=100,
     )
     assert p.filler.enabled and p.budget.enabled
-    assert not p.structure.enabled and not p.repetition.enabled
+    assert not p.structure.enabled and not p.repetition.enabled and not p.lexical.enabled
+    assert not p.abbrev.enabled and not p.alias.enabled
 
 
 def test_disable_after_preset():

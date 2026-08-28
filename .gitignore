@@ -36,3 +36,8 @@ Thumbs.db
 # Draft articles / writing prompts (local only)
 articles/STYLE_PROMPT_taha_azizi.md
 articles/introducing-contextpress.md
+
+# Savings-study downloads (licenses allow local measurement; not for republish)
+benchmarks/data/
+benchmarks/results/*.jsonl
+benchmarks/results/*.json

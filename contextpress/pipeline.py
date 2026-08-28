@@ -8,15 +8,22 @@ CONTEXTPRESS BEHAVIOR CONTRACT
 3. Output format ALWAYS mirrors input format.
 4. Most recent 3 non-system turns are NEVER compressed by recency.
 5. Last 2 non-system turns are NEVER removed by budget.
-6. Resolution requires BOTH sides in chat mode. One side is not enough.
-7. In repetition detection, the MORE RECENT turn ALWAYS wins.
-8. Tier 1 (no LLM) behavior is ALWAYS deterministic. Tests must pass consistently.
-9. LLM backend failures fall back to Tier 1 and emit a warning.
-10. token_budget=None means run all stages but skip budget enforcement.
-11. Compression presets (low/medium/high) select non-budget stages; budget runs when
+6. Trim never removes system turns, the opening non-system turns, or the last 3
+   non-system turns. Tool call/result groups that fall in the dropped span are kept.
+7. Resolution requires BOTH sides in chat mode. One side is not enough.
+8. In repetition detection, the MORE RECENT turn ALWAYS wins.
+9. Tier 1 (no LLM) behavior is ALWAYS deterministic. Tests must pass consistently.
+10. LLM backend failures fall back to Tier 1 and emit a warning.
+11. token_budget=None means run all stages but skip budget enforcement.
+12. Compression presets (low/medium/high) select non-budget stages; budget runs when
     token_budget is set unless opted out.
-12. Tier 2 (when enabled) may dedupe non-system turns, then replace them with one assistant
+13. Tier 2 (when enabled) may dedupe non-system turns, then replace them with one assistant
     summary; system turns stay unchanged.
+14. Lexical never mutates system turns, JSON blobs, fenced JSON, or tool
+    call/result turns. It only substitutes whole words from a frozen dictionary.
+    rag_doc leaves lexical off unless stages= names it.
+15. Abbrev and alias never mutate system / JSON / tool turns. Alias only fires
+    for phrases that repeat 3+ times in the conversation (chat/agent).
 """
 
 from __future__ import annotations
@@ -34,14 +41,18 @@ from contextpress.registry import (
     effective_stage_order,
     registered_stage_names,
 )
-from contextpress.stats import CompressionStats, count_conversation_tokens
+from contextpress.stats import CompressionStats, count_conversation_tokens, get_encoding
+from contextpress.strategies.abbrev import AbbreviationStrategy
+from contextpress.strategies.alias import AliasStrategy
 from contextpress.strategies.base import BaseStrategy
 from contextpress.strategies.budget import BudgetStrategy
 from contextpress.strategies.filler import FillerStrategy
+from contextpress.strategies.lexical import LexicalCompression
 from contextpress.strategies.recency import RecencyStrategy
 from contextpress.strategies.repetition import RepetitionStrategy
 from contextpress.strategies.resolution import ResolutionStrategy
 from contextpress.strategies.structure import StructureStrategy
+from contextpress.strategies.trim import TrimStrategy
 
 if TYPE_CHECKING:
     from contextpress.llm.base import LLMBackend
@@ -141,10 +152,27 @@ class Pipeline:
             )
         if name == "structure":
             return StructureStrategy(**kwargs)
+        if name == "lexical":
+            return LexicalCompression(
+                encoding_name=get_encoding(self.model).name,
+                **kwargs,
+            )
         if name == "filler":
             return FillerStrategy(**kwargs)
+        if name == "abbrev":
+            return AbbreviationStrategy(
+                encoding_name=get_encoding(self.model).name,
+                **kwargs,
+            )
+        if name == "alias":
+            return AliasStrategy(
+                encoding_name=get_encoding(self.model).name,
+                **kwargs,
+            )
         if name == "repetition":
             return RepetitionStrategy(**kwargs)
+        if name == "trim":
+            return TrimStrategy(**kwargs)
         if name == "resolution":
             return ResolutionStrategy(**kwargs)
         if name == "recency":

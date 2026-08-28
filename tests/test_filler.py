@@ -69,6 +69,47 @@ def test_empty_conversation():
     assert out == []
 
 
+def test_extra_low_value_phrase_removed():
+    t = Turn(role="assistant", content="To be honest, we should use Postgres.")
+    out = _run()([t]).turns[0]
+    assert "to be honest" not in out.content.lower()
+    assert "postgres" in out.content.lower()
+
+
+def test_um_disfluency_removed():
+    t = Turn(role="user", content="Um we should use Postgres.")
+    out = _run()([t]).turns[0]
+    assert "um" not in out.content.lower().split()
+    assert "postgres" in out.content.lower()
+
+
+def test_filler_skips_json_blob():
+    payload = '{"note": "basically utilize this"}'
+    t = Turn(role="user", content=payload)
+    out = _run()([t]).turns[0]
+    assert out.content == payload
+
+
+def test_ack_no_problem_dropped():
+    t = Turn(role="assistant", content="No problem")
+    out = _run()([t]).turns
+    assert len(out) == 0
+
+
+def test_extra_discourse_removed():
+    t = Turn(role="assistant", content="Due to the fact that we need indexes, add them.")
+    out = _run()([t]).turns[0]
+    assert "due to the fact that" not in out.content.lower()
+    assert "indexes" in out.content.lower()
+
+
+def test_aggressive_maybe_removed():
+    t = Turn(role="assistant", content="Maybe we should use Postgres.")
+    out = _run()([t]).turns[0]
+    assert "maybe" not in out.content.lower().split()
+    assert "postgres" in out.content.lower()
+
+
 def test_agent_preserves_tool_marker_turn():
     t = Turn(
         role="assistant",

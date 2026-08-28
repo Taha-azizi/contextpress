@@ -4,6 +4,25 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.10] - 2026-08-28
+
+- **Trim stage** — long chats can drop the *middle* of the thread and keep the
+  opening plus the last three non-system turns (tool pairs in the gap stay).
+  On ``medium`` / ``high`` (not ``low``). Also via ``stages=["trim", ...]``.
+- **Lexical stage** — whole-word, case-preserving synonym swaps from a frozen
+  tiktoken-encoding dictionary (``utilisation`` → ``use``). On chat/agent
+  ``low`` / ``medium`` / ``high``; off for ``rag_doc``. Skips JSON and tool
+  turns. Keeps a swap only when the turn's token count falls. Rebuild:
+  ``python scripts/build_lexical_dict.py``.
+- **Filler** — expanded empty hedges and spoken disfluencies (``to be honest``,
+  ``um``, ``due to the fact that``, …); JSON / tool turns are left unmodified.
+- **Abbrev stage** — ~300 common long-form → shorter form when BPE shrinks
+  (``due to the fact that`` → ``because``, ``in order to`` → ``to``).
+  Chat/agent presets.
+- **Alias stage** — phrases repeating 3+ times become ``Phrase (ABBR)`` then
+  ``ABBR`` for the rest of the chat. Chat/agent presets.
+- Example: ``examples/low_abbrev_alias.py``.
+
 ## [0.6.9] - 2026-08-25
 
 - **Refactor (no intended behavior change)** — shared JSON helpers in

@@ -6,9 +6,13 @@ from contextpress.profiles import Profile, StageConfig
 
 STAGE_ORDER: tuple[str, ...] = (
     "structure",
+    "lexical",
     "filler",
+    "abbrev",
+    "alias",
     "repetition",
     "resolution",
+    "trim",
     "recency",
     "budget",
 )
@@ -27,9 +31,23 @@ _NON_BUDGET_ORDER: tuple[str, ...] = tuple(s for s in STAGE_ORDER if s != "budge
 
 # NLP stages only; budget is toggled from token_budget (see apply_stage_selection)
 _COMPRESSION_PRESETS: dict[str, frozenset[str]] = {
-    "low": frozenset({"structure", "filler", "repetition"}),
-    "medium": frozenset({"structure", "filler", "repetition", "recency"}),
-    "high": frozenset({"structure", "filler", "repetition", "resolution", "recency"}),
+    "low": frozenset({"structure", "lexical", "filler", "abbrev", "alias", "repetition"}),
+    "medium": frozenset(
+        {"structure", "lexical", "filler", "abbrev", "alias", "repetition", "trim", "recency"}
+    ),
+    "high": frozenset(
+        {
+            "structure",
+            "lexical",
+            "filler",
+            "abbrev",
+            "alias",
+            "repetition",
+            "trim",
+            "resolution",
+            "recency",
+        }
+    ),
 }
 
 _COMPRESSION_ALIASES: dict[str, str] = {
