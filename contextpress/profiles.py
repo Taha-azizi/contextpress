@@ -14,6 +14,9 @@ class Profile:
     name: str
     structure: StageConfig
     lexical: StageConfig
+    contractions: StageConfig
+    wordy_phrases: StageConfig
+    number_normalize: StageConfig
     filler: StageConfig
     abbrev: StageConfig
     alias: StageConfig
@@ -25,11 +28,19 @@ class Profile:
     role_aware: bool = True  # enables speaker-side awareness
 
 
+def _off() -> StageConfig:
+    """Fresh disabled stage config (do not share instances across profiles)."""
+    return StageConfig(enabled=False)
+
+
 PROFILES: dict[str, Profile] = {
     "chat": Profile(
         name="chat",
         structure=StageConfig(enabled=True, aggressiveness=0.45),
         lexical=StageConfig(enabled=True, aggressiveness=0.5),
+        contractions=_off(),
+        wordy_phrases=_off(),
+        number_normalize=_off(),
         filler=StageConfig(enabled=True, aggressiveness=0.7),
         abbrev=StageConfig(enabled=True, aggressiveness=0.55),
         alias=StageConfig(enabled=True, aggressiveness=0.55),
@@ -44,6 +55,9 @@ PROFILES: dict[str, Profile] = {
         name="rag_doc",
         structure=StageConfig(enabled=True, aggressiveness=0.5),
         lexical=StageConfig(enabled=False),  # wording swaps are for chat, not documents
+        contractions=_off(),
+        wordy_phrases=_off(),
+        number_normalize=_off(),
         filler=StageConfig(enabled=True, aggressiveness=0.5),
         abbrev=StageConfig(enabled=False),  # keep document wording intact
         alias=StageConfig(enabled=False),
@@ -58,6 +72,9 @@ PROFILES: dict[str, Profile] = {
         name="agent",
         structure=StageConfig(enabled=True, aggressiveness=0.75),
         lexical=StageConfig(enabled=True, aggressiveness=0.5),
+        contractions=_off(),
+        wordy_phrases=_off(),
+        number_normalize=_off(),
         filler=StageConfig(enabled=True, aggressiveness=0.4),
         abbrev=StageConfig(enabled=True, aggressiveness=0.5),
         alias=StageConfig(enabled=True, aggressiveness=0.5),

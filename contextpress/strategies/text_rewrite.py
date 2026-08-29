@@ -36,11 +36,15 @@ def keep_if_fewer_tokens(
     original: str,
     rewritten: str,
     encoding: tiktoken.Encoding | None,
+    *,
+    allow_equal: bool = False,
 ) -> str:
-    """Return ``rewritten`` only when it encodes to strictly fewer tokens."""
+    """Return ``rewritten`` only when it encodes to fewer tokens (or equal if allowed)."""
     if rewritten == original or encoding is None:
         return rewritten if rewritten != original else original
-    if len(encoding.encode(rewritten)) < len(encoding.encode(original)):
+    after = len(encoding.encode(rewritten))
+    before = len(encoding.encode(original))
+    if after < before or (allow_equal and after == before):
         return rewritten
     return original
 

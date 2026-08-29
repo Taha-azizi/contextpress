@@ -64,6 +64,15 @@ VARIANTS: tuple[dict[str, Any], ...] = (
         "risk": "medium",
         "label": "high — medium + resolution collapse",
     },
+    {
+        "name": "optin_0611",
+        "compression": "low",
+        "stages": ["contractions", "wordy_phrases", "number_normalize"],
+        "budget": None,
+        "lossy": False,
+        "risk": "low",
+        "label": "opt-in 0.6.11 — contractions + wordy_phrases + number_normalize only",
+    },
 )
 
 # Jobs where contextpress is worth running (not 2-turn FAQ, not already-minified JSON).
@@ -445,7 +454,8 @@ def write_report(
     keep = _in_scope_ids(rows)
     scoped = [r for r in rows if r["id"] in keep]
     dropped = sorted({r["id"] for r in rows if r["id"] not in keep})
-    variants = [v["name"] for v in VARIANTS]
+    # Marketing brief stays on the three presets (ignore opt-in measurement rows).
+    variants = [v["name"] for v in VARIANTS if v["name"] in {"low", "medium", "high"}]
     med = {name: _agg([r for r in scoped if r["variant"] == name]) for name in variants}
     low_pct = _round_pct(med["low"]["median_pct"])
     mid_pct = _round_pct(med["medium"]["median_pct"])
@@ -856,7 +866,9 @@ def write_rigorous_report(
         for v in variants:
             cells.append(_fmt_pct(entry["presets"][v]["median_pct"]))
         bucket_rows.append(cells)
-    lines.append(_md_table(["bucket", "n", "low med%", "medium med%", "high med%"], bucket_rows))
+    lines.append(
+        _md_table(["bucket", "n", *[f"{v} med%" for v in variants]], bucket_rows)
+    )
     lines.append("")
     lines.append("## By source family")
     lines.append("")
@@ -866,7 +878,7 @@ def write_rigorous_report(
         for v in variants:
             cells.append(_fmt_pct(entry["presets"][v]["median_pct"]))
         src_rows.append(cells)
-    lines.append(_md_table(["source", "n", "low", "medium", "high"], src_rows))
+    lines.append(_md_table(["source", "n", *variants], src_rows))
     lines.append("")
     lines.append("## What each method saved (token Δ by stage)")
     lines.append("")
@@ -935,9 +947,7 @@ def write_rigorous_report(
                 "source",
                 "turns",
                 "tok in",
-                "low %",
-                "med %",
-                "high %",
+                *[f"{v} %" for v in variants],
                 "low top stages (tok)",
             ],
             detail_rows,

@@ -20,8 +20,11 @@ CONTEXTPRESS BEHAVIOR CONTRACT
 13. Tier 2 (when enabled) may dedupe non-system turns, then replace them with one assistant
     summary; system turns stay unchanged.
 14. Lexical never mutates system turns, JSON blobs, fenced JSON, or tool
-    call/result turns. It only substitutes whole words from a frozen dictionary.
-    rag_doc leaves lexical off unless stages= names it.
+    call/result turns. It only substitutes whole words/phrases from a frozen
+    dictionary. rag_doc leaves lexical off unless stages= names it.
+    Opt-in ``contractions`` / ``wordy_phrases`` reuse the same mechanism with
+    different dictionaries; ``number_normalize`` rewrites multi-word number
+    phrases to digits. None of those three are in low/medium/high presets.
 15. Abbrev and alias never mutate system / JSON / tool turns. Alias only fires
     for phrases that repeat 3+ times in the conversation (chat/agent).
 """
@@ -48,6 +51,7 @@ from contextpress.strategies.base import BaseStrategy
 from contextpress.strategies.budget import BudgetStrategy
 from contextpress.strategies.filler import FillerStrategy
 from contextpress.strategies.lexical import LexicalCompression
+from contextpress.strategies.number_normalize import NumberNormalizeStrategy
 from contextpress.strategies.recency import RecencyStrategy
 from contextpress.strategies.repetition import RepetitionStrategy
 from contextpress.strategies.resolution import ResolutionStrategy
@@ -160,6 +164,24 @@ class Pipeline:
             return StructureStrategy(**kwargs)
         if name == "lexical":
             return LexicalCompression(
+                encoding_name=get_encoding(self.model).name,
+                dict_name="lexical",
+                **kwargs,
+            )
+        if name == "contractions":
+            return LexicalCompression(
+                encoding_name=get_encoding(self.model).name,
+                dict_name="contractions",
+                **kwargs,
+            )
+        if name == "wordy_phrases":
+            return LexicalCompression(
+                encoding_name=get_encoding(self.model).name,
+                dict_name="wordy_phrases",
+                **kwargs,
+            )
+        if name == "number_normalize":
+            return NumberNormalizeStrategy(
                 encoding_name=get_encoding(self.model).name,
                 **kwargs,
             )

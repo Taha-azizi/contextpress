@@ -74,12 +74,12 @@ def test_tool_result_role_unmodified():
 
 
 def test_missing_dictionary_raises():
-    with pytest.raises(FileNotFoundError, match="no lexical dictionary"):
+    with pytest.raises(FileNotFoundError, match="no 'lexical' dictionary"):
         LexicalCompression(encoding_name="p50k_base")
 
 
 def test_invalid_encoding_name_raises():
-    with pytest.raises(ValueError, match="invalid lexical encoding"):
+    with pytest.raises(ValueError, match="invalid encoding name"):
         load_lexical_dict("../secret")
 
 

@@ -48,8 +48,8 @@ Do not use a hard `token_budget` as a 'savings' number — that is truncation. I
 | preset | median | p10 | p90 |
 | --- | --- | --- | --- |
 | low | 2.4% | 0.5% | 22.2% |
-| medium | 53.5% | 22.7% | 77.4% |
-| high | 53.5% | 22.7% | 77.4% |
+| medium | 53.5% | 22.7% | 77.3% |
+| high | 53.5% | 22.7% | 77.3% |
 
 **Chats:** `low` does not drop turns. Lexical swaps multi-token words; filler strips hedges. `medium` **trims the middle** (opening + last 3 + a stub) and may recency-shrink the leftover opening.
 
@@ -220,4 +220,4 @@ Two-turn support FAQs, already-minified JSON, and short dense encyclopedia pages
 
 ## How this was measured
 
-Tier 1 only (no LLM compressor). 222 raw items → 206 in-scope. 666 compressions in 39s. Re-run: `python -m benchmarks.run_savings --rebuild-corpus`.
+Tier 1 only (no LLM compressor). 222 raw items → 206 in-scope. 888 compressions in 218s. Re-run: `python -m benchmarks.run_savings --rebuild-corpus`.

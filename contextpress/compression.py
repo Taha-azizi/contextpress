@@ -7,6 +7,9 @@ from contextpress.profiles import Profile, StageConfig
 STAGE_ORDER: tuple[str, ...] = (
     "structure",
     "lexical",
+    "contractions",
+    "wordy_phrases",
+    "number_normalize",
     "filler",
     "abbrev",
     "alias",

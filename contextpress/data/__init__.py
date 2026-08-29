@@ -1,1 +1,1 @@
-"""Bundled data files (lexical dictionaries). Not a public API."""
+"""Bundled data files (lexical / contractions / wordy_phrases dictionaries). Not a public API."""

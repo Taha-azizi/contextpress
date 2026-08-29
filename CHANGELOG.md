@@ -4,6 +4,21 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.11] - 2026-08-29
+
+- **Lexical reuse** — ``LexicalCompression`` accepts ``dict_name`` /
+  ``dict_path`` and matches multi-word keys longest-first (shared path for
+  synonyms, contractions, and wordy phrases).
+- **Contractions** (opt-in) — ``stages=["contractions"]``; frozen
+  ``do not`` → ``don't`` dictionaries per encoding
+  (``scripts/build_contractions_dict.py``). Not in low/medium/high yet.
+- **Wordy phrases** (opt-in) — ``stages=["wordy_phrases"]``; hand list
+  (``in order to`` → ``to``, …). Rebuild:
+  ``python scripts/build_wordy_phrases_dict.py``.
+- **Number normalize** (opt-in) — ``stages=["number_normalize"]`` converts
+  multi-word number phrases to digits (``twenty three`` → ``23``); single
+  number words untouched.
+
 ## [0.6.10] - 2026-08-28
 
 - **Trim stage** — long chats can drop the *middle* of the thread and keep the

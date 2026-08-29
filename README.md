@@ -167,7 +167,7 @@ Low-preset wording stages: [`examples/low_abbrev_alias.py`](examples/low_abbrev_
 ## Pipeline stages
 
 1. **Structure** (0.6+) — Minifies JSON blobs (including markdown `` ```json `` fences, 0.6.5+) and tightens whitespace / repeated log lines inside non-system turns (stdlib only; great for agent tool payloads and RAG chunks).
-2. **Lexical** (0.6.10+) — Replaces multi-token words with fewer-token near-synonyms from a frozen, encoding-specific dictionary (`utilisation` → `use`). Chat and agent only (off for `rag_doc`). Skips system turns, JSON blobs, `` ```json `` fences, and tool call/result turns. Only keeps a swap when the turn's token count falls. **On `low` / `medium` / `high` for chat and agent.** This **changes wording**, not just removes content — use judgment on tone-sensitive text. Encoding follows `ContextManager(model=...)` (`cl100k_base` by default, `o200k_base` for gpt-4o-class models). Rebuild dictionaries with `python scripts/build_lexical_dict.py`.
+2. **Lexical** (0.6.10+) — Replaces multi-token words with fewer-token near-synonyms from a frozen, encoding-specific dictionary (`utilisation` → `use`). Chat and agent only (off for `rag_doc`). Skips system turns, JSON blobs, `` ```json `` fences, and tool call/result turns. Only keeps a swap when the turn's token count falls. **On `low` / `medium` / `high` for chat and agent.** This **changes wording**, not just removes content — use judgment on tone-sensitive text. Encoding follows `ContextManager(model=...)` (`cl100k_base` by default, `o200k_base` for gpt-4o-class models). Rebuild dictionaries with `python scripts/build_lexical_dict.py`. Same loader also powers opt-in ``contractions`` / ``wordy_phrases`` via ``dict_name`` / ``dict_path``.
 
 ```python
 # Exact stages (preset ignored); lexical/abbrev/alias are also on chat/agent presets
@@ -179,6 +179,21 @@ out = ContextManager().compress(
 ```
 
 Runnable demo: [`examples/low_abbrev_alias.py`](examples/low_abbrev_alias.py).
+
+Opt-in (0.6.11+, **not** in low/medium/high):
+
+```python
+out = ContextManager().compress(
+    messages,
+    token_budget=None,
+    stages=["contractions", "wordy_phrases", "number_normalize"],
+)
+```
+
+- **Contractions** — `do not` → `don't` (low meaning risk).
+- **Wordy phrases** — `due to the fact that` → `because`, `in order to` → `to`, …
+- **Number normalize** — multi-word quantities only (`twenty three` → `23`); leaves lone `one` / `two` alone.
+
 3. **Filler** — Removes low-semantic filler words / empty hedges (aggressive discourse strip) and (in chat/agent) drops acknowledgement-only assistant turns. JSON and tool turns are left unmodified.
 4. **Abbrev** (0.6.10+) — Replaces ~300 common long forms with shorter equivalents when that actually reduces tokens (`due to the fact that` → `because`, `in order to` → `to`, `application programming interface` → `API`). Chat/agent only (off for `rag_doc`). Skips system / JSON / tool turns. Some popular shortcuts (e.g. `for example` → `e.g.`) are skipped when they do not shrink BPE count.
 5. **Alias** (0.6.10+) — Finds multi-word expressions that appear **3+ times** in the same chat, introduces them once as `Phrase (ABBR)`, then uses `ABBR` afterward (e.g. `Context Press (CP)` … `CP`). Chat/agent only. Skips system / JSON / tool turns. Reverts if the whole conversation would grow.

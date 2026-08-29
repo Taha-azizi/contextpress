@@ -47,6 +47,7 @@ deterministic Tier‑1 NLP for chat / RAG / agent **message histories**, with op
 | **0.6.7** | Anthropic `tool_use` / `tool_result` content blocks — shipped |
 | **0.6.8** | Gemini `functionCall` / `functionResponse` parts — shipped |
 | **0.6.9** | Internal refactor: jsonutil, clone_turn in stages — shipped. |
+| **0.6.11** | Opt-in `contractions` / `wordy_phrases` (lexical dict reuse) + `number_normalize` — shipped. |
 | **0.6.10** | `trim` (medium/high); `lexical` / `abbrev` / `alias` + expanded filler on chat/agent `low` — shipped. |
 
 Stay classical-NLP-first; keep optional LLM extras optional.
