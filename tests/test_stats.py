@@ -38,3 +38,18 @@ def test_stats_turn_delta_by_stage():
     ]
     result = cm.compress(messages, token_budget=None, return_stats=True)
     assert isinstance(result.stats.turn_delta_by_stage, dict)
+    assert isinstance(result.stats.token_delta_by_stage, dict)
+
+
+def test_stats_token_delta_by_stage_records_savings():
+    cm = ContextManager(type="chat", compression="low")
+    messages = [
+        {"role": "user", "content": "Due to the fact that we need fewer tokens basically."},
+        {"role": "assistant", "content": "In order to help, drop filler."},
+    ]
+    result = cm.compress(messages, token_budget=None, return_stats=True)
+    assert result.stats.tokens_before >= result.stats.tokens_after
+    # At least one wording stage should move tokens on this hedge-heavy text.
+    assert result.stats.token_delta_by_stage or result.stats.tokens_saved == 0
+    for delta in result.stats.token_delta_by_stage.values():
+        assert isinstance(delta, int)

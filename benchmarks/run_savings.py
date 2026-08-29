@@ -21,6 +21,7 @@ ROOT = Path(__file__).resolve().parent
 REPO = ROOT.parent
 RESULTS = ROOT / "results"
 REPORT = ROOT / "SAVINGS.md"
+RIGOROUS = ROOT / "RESULTS.md"
 
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
@@ -43,7 +44,7 @@ VARIANTS: tuple[dict[str, Any], ...] = (
         "budget": None,
         "lossy": False,
         "risk": "low",
-        "label": "low — minify JSON, lexical word swaps, drop filler and near-duplicates",
+        "label": "low — structure, lexical, filler, abbrev, alias, repetition",
     },
     {
         "name": "medium",
@@ -52,7 +53,7 @@ VARIANTS: tuple[dict[str, Any], ...] = (
         "budget": None,
         "lossy": True,
         "risk": "low–medium",
-        "label": "medium — trim long chats, shrink leftover older turns",
+        "label": "medium — low + trim + recency",
     },
     {
         "name": "high",
@@ -61,7 +62,7 @@ VARIANTS: tuple[dict[str, Any], ...] = (
         "budget": None,
         "lossy": True,
         "risk": "medium",
-        "label": "high — also collapses finished threads",
+        "label": "high — medium + resolution collapse",
     },
 )
 
@@ -193,6 +194,7 @@ def run_one(item: dict[str, Any], variant: dict[str, Any]) -> dict[str, Any]:
         "token_savings_pct": stats.token_savings_pct,
         "stages_run": list(stats.stages_run),
         "turn_delta_by_stage": dict(stats.turn_delta_by_stage),
+        "token_delta_by_stage": dict(stats.token_delta_by_stage),
         "elapsed_ms": round(elapsed_ms, 2),
         "token_budget": kwargs["token_budget"],
         "sanity": issues,
@@ -716,6 +718,247 @@ def write_report(
     return text
 
 
+def _source_family(source: str) -> str:
+    s = (source or "").lower()
+    if "wildchat" in s:
+        return "WildChat"
+    if "sharegpt" in s or "vicuna" in s:
+        return "ShareGPT"
+    if "guanaco" in s:
+        return "Guanaco"
+    if "ultrachat" in s:
+        return "UltraChat"
+    if "oasst2" in s:
+        return "OASST2"
+    if "oasst" in s:
+        return "OASST1"
+    if "capybara" in s:
+        return "Capybara"
+    if "hh-rlhf" in s or "anthropic/hh" in s:
+        return "HH-RLHF"
+    if "github issue" in s:
+        return "GitHub issues"
+    if "github rest" in s:
+        return "GitHub API JSON"
+    if "glaive" in s:
+        return "Glaive tools"
+    if "stack overflow" in s:
+        return "Stack Overflow"
+    if "in-repo" in s:
+        return "In-repo examples"
+    if "local contextpress" in s or "flask/requests" in s or "openapi" in s or "swagger" in s:
+        return "Files / docs"
+    return source.split("(")[0].strip()[:40] or "other"
+
+
+def write_rigorous_report(
+    *,
+    items: list[dict[str, Any]],
+    rows: list[dict[str, Any]],
+    errors: list[str],
+    elapsed_s: float,
+) -> dict[str, Any]:
+    """Full measurement dump: every item × preset, plus per-stage token savings."""
+    variants = [v["name"] for v in VARIANTS]
+    by_variant: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for r in rows:
+        by_variant[r["variant"]].append(r)
+
+    # Per-stage: sum of (-delta) tokens and mean % of tokens_before for that run.
+    stage_stats: dict[str, dict[str, Any]] = {}
+    for variant in variants:
+        saved_by_stage: dict[str, list[int]] = defaultdict(list)
+        pct_by_stage: dict[str, list[float]] = defaultdict(list)
+        for r in by_variant[variant]:
+            before = max(1, int(r["tokens_before"]))
+            for stage, delta in (r.get("token_delta_by_stage") or {}).items():
+                saved = max(0, -int(delta))
+                saved_by_stage[stage].append(saved)
+                pct_by_stage[stage].append(100.0 * saved / before)
+        stage_stats[variant] = {
+            stage: {
+                "n_nonzero": sum(1 for x in saved if x > 0),
+                "sum_tokens_saved": int(sum(saved)),
+                "median_tokens_saved": _percentile([float(x) for x in saved], 50),
+                "mean_pct_of_input": (
+                    round(statistics.fmean(pct_by_stage[stage]), 3) if pct_by_stage[stage] else 0.0
+                ),
+                "median_pct_of_input": _percentile(pct_by_stage[stage], 50),
+            }
+            for stage, saved in sorted(saved_by_stage.items())
+        }
+
+    by_source: dict[str, dict[str, Any]] = {}
+    for family in sorted({_source_family(r["source"]) for r in rows}):
+        fam_rows = [r for r in rows if _source_family(r["source"]) == family]
+        entry: dict[str, Any] = {"n_items": len({r["id"] for r in fam_rows}), "presets": {}}
+        for variant in variants:
+            subset = [r for r in fam_rows if r["variant"] == variant]
+            entry["presets"][variant] = _agg(subset)
+        by_source[family] = entry
+
+    by_bucket: dict[str, dict[str, Any]] = {}
+    for bucket in sorted({r["bucket"] for r in rows}):
+        b_rows = [r for r in rows if r["bucket"] == bucket]
+        entry = {"n_items": len({r["id"] for r in b_rows}), "presets": {}}
+        for variant in variants:
+            entry["presets"][variant] = _agg([r for r in b_rows if r["variant"] == variant])
+        by_bucket[bucket] = entry
+
+    summary = {
+        "n_items": len(items),
+        "n_runs": len(rows),
+        "elapsed_s": round(elapsed_s, 2),
+        "fetch_errors": errors,
+        "overall": {v: _agg(by_variant[v]) for v in variants},
+        "by_bucket": by_bucket,
+        "by_source_family": by_source,
+        "by_stage": stage_stats,
+    }
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    (RESULTS / "summary.json").write_text(json.dumps(summary, indent=2), encoding="utf-8")
+
+    lines: list[str] = [
+        "# Contextpress savings — full measurement report",
+        "",
+        f"Tier-1 only. **{len(items)}** corpus items × **{len(variants)}** presets "
+        f"= **{len(rows)}** compressions in **{elapsed_s:.0f}s**.",
+        "",
+        "Raw rows: `benchmarks/results/runs.jsonl`. Aggregates: "
+        "`benchmarks/results/summary.json`.",
+        "",
+        "## Overall (all items, no marketing filter)",
+        "",
+    ]
+    lines.append(
+        _md_table(
+            ["preset", "n", "mean %", "median %", "p10", "p90", "median tokens saved"],
+            [
+                [
+                    v,
+                    str(summary["overall"][v]["n"]),
+                    _fmt_pct(summary["overall"][v]["mean_pct"]),
+                    _fmt_pct(summary["overall"][v]["median_pct"]),
+                    _fmt_pct(summary["overall"][v]["p10_pct"]),
+                    _fmt_pct(summary["overall"][v]["p90_pct"]),
+                    _fmt_num(summary["overall"][v]["median_tokens_saved"]),
+                ]
+                for v in variants
+            ],
+        )
+    )
+    lines.append("")
+    lines.append("## By job bucket")
+    lines.append("")
+    bucket_rows = []
+    for bucket, entry in by_bucket.items():
+        cells = [bucket, str(entry["n_items"])]
+        for v in variants:
+            cells.append(_fmt_pct(entry["presets"][v]["median_pct"]))
+        bucket_rows.append(cells)
+    lines.append(_md_table(["bucket", "n", "low med%", "medium med%", "high med%"], bucket_rows))
+    lines.append("")
+    lines.append("## By source family")
+    lines.append("")
+    src_rows = []
+    for family, entry in by_source.items():
+        cells = [family, str(entry["n_items"])]
+        for v in variants:
+            cells.append(_fmt_pct(entry["presets"][v]["median_pct"]))
+        src_rows.append(cells)
+    lines.append(_md_table(["source", "n", "low", "medium", "high"], src_rows))
+    lines.append("")
+    lines.append("## What each method saved (token Δ by stage)")
+    lines.append("")
+    lines.append(
+        "For each preset, stages that changed tokens. "
+        "`sum_saved` is total tokens removed by that stage across all items; "
+        "`median %` is that stage's savings as a share of the item's input tokens."
+    )
+    lines.append("")
+    for variant in variants:
+        lines.append(f"### Preset `{variant}`")
+        lines.append("")
+        stage_rows = []
+        for stage, st in stage_stats.get(variant, {}).items():
+            stage_rows.append(
+                [
+                    stage,
+                    str(st["n_nonzero"]),
+                    str(st["sum_tokens_saved"]),
+                    _fmt_num(st["median_tokens_saved"]),
+                    _fmt_pct(st["median_pct_of_input"]),
+                    f"{st['mean_pct_of_input']:.2f}%",
+                ]
+            )
+        if stage_rows:
+            lines.append(
+                _md_table(
+                    ["stage", "n>0", "sum tokens saved", "median tok", "median %", "mean %"],
+                    stage_rows,
+                )
+            )
+        else:
+            lines.append("_No stage-level token deltas recorded._")
+        lines.append("")
+
+    lines.append("## Every item × preset")
+    lines.append("")
+    by_id: dict[str, dict[str, dict[str, Any]]] = defaultdict(dict)
+    for r in rows:
+        by_id[r["id"]][r["variant"]] = r
+    detail_rows: list[list[str]] = []
+    for iid in sorted(by_id.keys()):
+        vs = by_id[iid]
+        lo = vs.get("low") or next(iter(vs.values()))
+        cells = [
+            iid,
+            lo["bucket"],
+            _source_family(lo["source"]),
+            str(lo["turns_before"]),
+            str(lo["tokens_before"]),
+        ]
+        for v in variants:
+            r = vs.get(v)
+            cells.append(_fmt_pct(r["token_savings_pct"] if r else None))
+        # Top stages on low (by tokens saved)
+        deltas = (lo.get("token_delta_by_stage") or {}) if lo else {}
+        ranked = sorted(deltas.items(), key=lambda kv: kv[1])[:3]
+        top = ", ".join(f"{s}:{-d}" for s, d in ranked if d < 0) or "—"
+        cells.append(top)
+        detail_rows.append(cells)
+    lines.append(
+        _md_table(
+            [
+                "id",
+                "bucket",
+                "source",
+                "turns",
+                "tok in",
+                "low %",
+                "med %",
+                "high %",
+                "low top stages (tok)",
+            ],
+            detail_rows,
+        )
+    )
+    lines.append("")
+    if errors:
+        lines.append("## Fetch errors")
+        lines.append("")
+        for err in errors:
+            lines.append(f"- {err}")
+        lines.append("")
+    lines.append(
+        "Re-run: `python -m benchmarks.run_savings --rebuild-corpus` "
+        "(add `--refresh` to re-download HF caches)."
+    )
+    lines.append("")
+    RIGOROUS.write_text("\n".join(lines), encoding="utf-8")
+    return summary
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Tier-1 savings study (no LLM).")
     parser.add_argument("--refresh", action="store_true", help="re-fetch remote sources")
@@ -748,8 +991,11 @@ def main() -> int:
     with out_path.open("w", encoding="utf-8") as fh:
         for row in rows:
             fh.write(json.dumps(row, ensure_ascii=False) + "\n")
+    write_rigorous_report(items=items, rows=rows, errors=errors, elapsed_s=elapsed_s)
     write_report(items=items, rows=rows, errors=errors, elapsed_s=elapsed_s)
     print(f"wrote {out_path}")
+    print(f"wrote {RESULTS / 'summary.json'}")
+    print(f"wrote {RIGOROUS}")
     print(f"wrote {REPORT}")
     print(f"elapsed {elapsed_s:.1f}s")
     return 0

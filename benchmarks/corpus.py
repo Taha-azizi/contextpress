@@ -22,10 +22,11 @@ CORPUS_PATH = DATA / "corpus.jsonl"
 FIXTURES = ROOT.parent / "tests" / "fixtures" / "chats"
 
 UA = {
-    "User-Agent": "contextpress-savings-research/0.6.9 (local benchmark; +https://github.com/Taha-azizi/contextpress)"
+    "User-Agent": "contextpress-savings-research/0.6.10 (local benchmark; +https://github.com/Taha-azizi/contextpress)"
 }
 MAX_ITEM_CHARS = 80_000
 MAX_TURNS = 40
+_HF_SLEEP_S = 0.35
 
 _TAG = re.compile(r"<[^>]+>", re.DOTALL)
 _GLAIVE_SPLIT = re.compile(r"\n(?=USER:|ASSISTANT:|FUNCTION RESPONSE:)")
@@ -86,10 +87,13 @@ def _http_json(url: str, *, gzip_ok: bool = True) -> Any:
 
 
 def cached_json(name: str, url: str, *, refresh: bool = False) -> Any:
+    import time
+
     RAW.mkdir(parents=True, exist_ok=True)
     path = RAW / f"{name}.json"
     if path.exists() and not refresh:
         return json.loads(path.read_text(encoding="utf-8"))
+    time.sleep(_HF_SLEEP_S)
     payload = _http_json(url)
     path.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     return payload
@@ -789,7 +793,284 @@ def load_remote_files(*, refresh: bool) -> list[dict[str, Any]]:
     )
     return [item] if item else []
 
-    return [item] if item else []
+
+def _sharegpt_to_messages(conversations: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    role_map = {
+        "human": "user",
+        "user": "user",
+        "gpt": "assistant",
+        "assistant": "assistant",
+        "system": "system",
+    }
+    out: list[dict[str, Any]] = []
+    for turn in conversations or []:
+        if not isinstance(turn, dict):
+            continue
+        raw_role = str(turn.get("from") or turn.get("role") or "user").lower()
+        role = role_map.get(raw_role, "user")
+        content = turn.get("value") or turn.get("content") or turn.get("text") or ""
+        if not str(content).strip():
+            continue
+        out.append({"role": role, "content": str(content)})
+    return out
+
+
+def load_sharegpt(*, refresh: bool) -> list[dict[str, Any]]:
+    """Multi-turn ShareGPT / Vicuna-style chats (community dump on HF)."""
+    rows: list[dict[str, Any]] = []
+    for offset in (0, 50, 100, 150, 200, 250):
+        rows.extend(
+            _hf_rows(
+                "Aeala/ShareGPT_Vicuna_unfiltered",
+                "default",
+                "train",
+                offset,
+                50,
+                refresh=refresh,
+            )
+        )
+    items: list[dict[str, Any]] = []
+    for i, row in enumerate(rows):
+        clean = _sharegpt_to_messages(row.get("conversations") or [])
+        if len(clean) < 8:
+            continue
+        chars = sum(len(m["content"]) for m in clean)
+        if chars < 2500:
+            continue
+        item = _item(
+            id=f"sharegpt:{row.get('id') or i}",
+            bucket="chat",
+            type="chat",
+            source="Aeala/ShareGPT_Vicuna_unfiltered",
+            license="ShareGPT dump (user-shared; measure, do not reprint)",
+            messages=clean,
+            url="https://huggingface.co/datasets/Aeala/ShareGPT_Vicuna_unfiltered",
+            quotable=False,
+            notes="Long shared ChatGPT sessions (8+ turns).",
+        )
+        if item:
+            items.append(item)
+        if len(items) >= 40:
+            break
+    return items
+
+
+def load_guanaco(*, refresh: bool) -> list[dict[str, Any]]:
+    """Guanaco ShareGPT-style (often non-English) multi-turn chats."""
+    rows: list[dict[str, Any]] = []
+    for offset in (0, 50, 100, 150):
+        rows.extend(
+            _hf_rows(
+                "philschmid/guanaco-sharegpt-style",
+                "default",
+                "train",
+                offset,
+                50,
+                refresh=refresh,
+            )
+        )
+    items: list[dict[str, Any]] = []
+    for i, row in enumerate(rows):
+        clean = _sharegpt_to_messages(row.get("conversations") or [])
+        if len(clean) < 6:
+            continue
+        chars = sum(len(m["content"]) for m in clean)
+        if chars < 1800:
+            continue
+        item = _item(
+            id=f"guanaco:{i}",
+            bucket="chat",
+            type="chat",
+            source="philschmid/guanaco-sharegpt-style",
+            license="Guanaco / OASST-derived ShareGPT style (measure, do not reprint)",
+            messages=clean,
+            url="https://huggingface.co/datasets/philschmid/guanaco-sharegpt-style",
+            quotable=False,
+            notes="Multi-turn; often non-English — stress-tests lexical/abbrev on other languages.",
+        )
+        if item:
+            items.append(item)
+        if len(items) >= 20:
+            break
+    return items
+
+
+def load_wildchat(*, refresh: bool) -> list[dict[str, Any]]:
+    """Real user↔ChatGPT traffic (allenai/WildChat-1M), English long threads only."""
+    rows: list[dict[str, Any]] = []
+    for offset in (0, 100, 200, 300, 400, 500, 600, 700):
+        rows.extend(
+            _hf_rows("allenai/WildChat-1M", "default", "train", offset, 100, refresh=refresh)
+        )
+    items: list[dict[str, Any]] = []
+    for i, row in enumerate(rows):
+        if row.get("language") != "English":
+            continue
+        conv = row.get("conversation") or []
+        if not isinstance(conv, list) or len(conv) < 6:
+            continue
+        clean = []
+        for m in conv:
+            if not isinstance(m, dict):
+                continue
+            role = m.get("role") or "user"
+            if role not in {"user", "assistant", "system"}:
+                role = "user"
+            content = m.get("content") or ""
+            if not str(content).strip():
+                continue
+            clean.append({"role": role, "content": str(content)})
+        if len(clean) < 6:
+            continue
+        chars = sum(len(m["content"]) for m in clean)
+        if chars < 2200:
+            continue
+        chash = (row.get("conversation_hash") or str(i))[:12]
+        item = _item(
+            id=f"wildchat:{chash}",
+            bucket="chat",
+            type="chat",
+            source="allenai/WildChat-1M",
+            license="ODC-BY (WildChat); measure, do not reprint user text",
+            messages=clean,
+            url="https://huggingface.co/datasets/allenai/WildChat-1M",
+            quotable=False,
+            notes="Organic ChatGPT traffic; English, 6+ turns.",
+        )
+        if item:
+            items.append(item)
+        if len(items) >= 45:
+            break
+    return items
+
+
+def load_capybara(*, refresh: bool) -> list[dict[str, Any]]:
+    """LDJnr/Capybara multi-round input/output dialogues."""
+    rows: list[dict[str, Any]] = []
+    for offset in (0, 50, 100, 150, 200):
+        rows.extend(_hf_rows("LDJnr/Capybara", "default", "train", offset, 50, refresh=refresh))
+    items: list[dict[str, Any]] = []
+    for i, row in enumerate(rows):
+        rounds = row.get("conversation") or []
+        if not isinstance(rounds, list) or len(rounds) < 3:
+            continue
+        clean: list[dict[str, Any]] = []
+        for turn in rounds:
+            if not isinstance(turn, dict):
+                continue
+            inp = str(turn.get("input") or "").strip()
+            out = str(turn.get("output") or "").strip()
+            if inp:
+                clean.append({"role": "user", "content": inp})
+            if out:
+                clean.append({"role": "assistant", "content": out})
+        if len(clean) < 6:
+            continue
+        chars = sum(len(m["content"]) for m in clean)
+        if chars < 2000:
+            continue
+        item = _item(
+            id=f"capybara:{i}",
+            bucket="chat",
+            type="chat",
+            source="LDJnr/Capybara",
+            license="Apache-2.0",
+            messages=clean,
+            url="https://huggingface.co/datasets/LDJnr/Capybara",
+            quotable=False,
+            notes="Synthetic multi-round instruction dialogues.",
+        )
+        if item:
+            items.append(item)
+        if len(items) >= 25:
+            break
+    return items
+
+
+def _parse_hh_dialogue(text: str) -> list[dict[str, Any]]:
+    """Parse Anthropic HH ``Human:`` / ``Assistant:`` transcript into messages."""
+    text = (text or "").strip()
+    if not text:
+        return []
+    parts = re.split(r"\n\n(?=(?:Human|Assistant):)", text)
+    messages: list[dict[str, Any]] = []
+    for part in parts:
+        part = part.strip()
+        if part.startswith("Human:"):
+            messages.append({"role": "user", "content": part[len("Human:") :].strip()})
+        elif part.startswith("Assistant:"):
+            messages.append({"role": "assistant", "content": part[len("Assistant:") :].strip()})
+    return [m for m in messages if m["content"]]
+
+
+def load_hh_rlhf(*, refresh: bool) -> list[dict[str, Any]]:
+    """Anthropic HH-RLHF preferred dialogues (multi-turn only)."""
+    rows: list[dict[str, Any]] = []
+    for offset in (0, 100, 200, 300, 400):
+        rows.extend(_hf_rows("Anthropic/hh-rlhf", "default", "train", offset, 100, refresh=refresh))
+    items: list[dict[str, Any]] = []
+    for i, row in enumerate(rows):
+        clean = _parse_hh_dialogue(row.get("chosen") or "")
+        if len(clean) < 4:
+            continue
+        chars = sum(len(m["content"]) for m in clean)
+        if chars < 1500:
+            continue
+        item = _item(
+            id=f"hh:{i}",
+            bucket="chat",
+            type="chat",
+            source="Anthropic/hh-rlhf (chosen)",
+            license="MIT (Anthropic HH-RLHF)",
+            messages=clean,
+            url="https://huggingface.co/datasets/Anthropic/hh-rlhf",
+            quotable=False,
+            notes="Preference-model chosen side; often hedge-heavy — good filler stress test.",
+        )
+        if item:
+            items.append(item)
+        if len(items) >= 25:
+            break
+    return items
+
+
+def load_oasst2(*, refresh: bool) -> list[dict[str, Any]]:
+    """OpenAssistant OASST2 English trees (same flatten as oasst1)."""
+    rows: list[dict[str, Any]] = []
+    for offset in (0, 100, 200, 300):
+        rows.extend(
+            _hf_rows("OpenAssistant/oasst2", "default", "train", offset, 100, refresh=refresh)
+        )
+    trees: dict[str, list[dict[str, Any]]] = defaultdict(list)
+    for row in rows:
+        if row.get("deleted") or row.get("lang") != "en":
+            continue
+        trees[row["message_tree_id"]].append(row)
+    items: list[dict[str, Any]] = []
+    for tid, nodes in trees.items():
+        nodes = sorted(nodes, key=lambda n: n.get("created_date") or "")
+        if len(nodes) < 6:
+            continue
+        messages = []
+        for n in nodes:
+            role = "user" if n.get("role") == "prompter" else "assistant"
+            messages.append({"role": role, "content": n.get("text") or ""})
+        item = _item(
+            id=f"oasst2:{tid[:8]}",
+            bucket="chat",
+            type="chat",
+            source="OpenAssistant/oasst2 (English tree, chronological flatten)",
+            license="Apache-2.0",
+            messages=messages,
+            url="https://huggingface.co/datasets/OpenAssistant/oasst2",
+            quotable=False,
+            notes="Human volunteer OASST2 trees; do not reprint.",
+        )
+        if item:
+            items.append(item)
+        if len(items) >= 20:
+            break
+    return items
 
 
 def build_corpus(*, refresh: bool = False) -> tuple[list[dict[str, Any]], list[str]]:
@@ -799,10 +1080,26 @@ def build_corpus(*, refresh: bool = False) -> tuple[list[dict[str, Any]], list[s
     items.extend(load_local_files())
     items.extend(_try("ultrachat", lambda: load_ultrachat(refresh=refresh), errors))
     items.extend(_try("oasst", lambda: load_oasst(refresh=refresh), errors))
+    items.extend(_try("oasst2", lambda: load_oasst2(refresh=refresh), errors))
+    items.extend(_try("sharegpt", lambda: load_sharegpt(refresh=refresh), errors))
+    items.extend(_try("guanaco", lambda: load_guanaco(refresh=refresh), errors))
+    items.extend(_try("wildchat", lambda: load_wildchat(refresh=refresh), errors))
+    items.extend(_try("capybara", lambda: load_capybara(refresh=refresh), errors))
+    items.extend(_try("hh_rlhf", lambda: load_hh_rlhf(refresh=refresh), errors))
+    items.extend(_try("glaive", lambda: load_glaive(refresh=refresh), errors))
     items.extend(_try("github", lambda: load_github(refresh=refresh), errors))
     items.extend(_try("stackexchange", lambda: load_stackexchange(refresh=refresh), errors))
     items.extend(_try("openapi", lambda: load_openapi(refresh=refresh), errors))
     items.extend(_try("remote_files", lambda: load_remote_files(refresh=refresh), errors))
+    # Deduplicate by id (later sources win only if id collision — keep first).
+    seen: set[str] = set()
+    unique: list[dict[str, Any]] = []
+    for item in items:
+        if item["id"] in seen:
+            continue
+        seen.add(item["id"])
+        unique.append(item)
+    items = unique
     DATA.mkdir(parents=True, exist_ok=True)
     with CORPUS_PATH.open("w", encoding="utf-8") as fh:
         for item in items:

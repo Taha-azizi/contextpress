@@ -113,13 +113,19 @@ class Pipeline:
             if stage_config is None or not stage_config.enabled:
                 continue
             before_turns = len(result.turns)
+            before_tokens = (
+                count_conversation_tokens(result, self.model) if stats is not None else 0
+            )
             strategy = self._build_strategy(stage_name, stage_config)
             result = strategy.process(result)
             if stats is not None:
                 stats.stages_run.append(stage_name)
-                delta = len(result.turns) - before_turns
-                if delta != 0:
-                    stats.turn_delta_by_stage[stage_name] = delta
+                turn_delta = len(result.turns) - before_turns
+                if turn_delta != 0:
+                    stats.turn_delta_by_stage[stage_name] = turn_delta
+                token_delta = count_conversation_tokens(result, self.model) - before_tokens
+                if token_delta != 0:
+                    stats.token_delta_by_stage[stage_name] = token_delta
 
         if self.llm_backend is not None and not dry_run:
             result = self._run_llm_tier(result, stats=stats)

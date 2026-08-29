@@ -48,6 +48,8 @@ class CompressionStats:
     tokens_after: int = 0
     stages_run: list[str] = field(default_factory=list)
     turn_delta_by_stage: dict[str, int] = field(default_factory=dict)
+    # after - before tokens for each stage (negative means savings)
+    token_delta_by_stage: dict[str, int] = field(default_factory=dict)
     llm_tier_applied: bool = False
     llm_dedup_turns_before: int = 0
     llm_dedup_turns_after: int = 0
@@ -166,6 +168,7 @@ class CompressionStats:
             "token_savings_pct": self.token_savings_pct,
             "stages_run": list(self.stages_run),
             "turn_delta_by_stage": dict(self.turn_delta_by_stage),
+            "token_delta_by_stage": dict(self.token_delta_by_stage),
             "llm_tier_applied": self.llm_tier_applied,
             "llm_dedup_turns_before": self.llm_dedup_turns_before,
             "llm_dedup_turns_after": self.llm_dedup_turns_after,
