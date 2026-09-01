@@ -4,6 +4,12 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.12] - 2026-08-31
+
+- **Polish** — ``LexicalCompression`` takes explicit ``allow_equal_tokens``
+  (pipeline sets it for ``contractions``); drop filename-based inference.
+- ``text_rewrite`` docstring lists ``number_normalize`` among shared callers.
+
 ## [0.6.11] - 2026-08-29
 
 - **Lexical reuse** — ``LexicalCompression`` accepts ``dict_name`` /

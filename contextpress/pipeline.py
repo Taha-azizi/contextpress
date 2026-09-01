@@ -172,6 +172,7 @@ class Pipeline:
             return LexicalCompression(
                 encoding_name=get_encoding(self.model).name,
                 dict_name="contractions",
+                allow_equal_tokens=True,
                 **kwargs,
             )
         if name == "wordy_phrases":

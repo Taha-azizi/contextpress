@@ -112,6 +112,8 @@ class LexicalCompression(BaseStrategy):
 
     ``dict_name`` selects a bundled file (``lexical``, ``contractions``,
     ``wordy_phrases``). ``dict_path`` overrides the bundled file entirely.
+    Pass ``allow_equal_tokens=True`` for low-risk dicts (e.g. contractions)
+    where equal BPE length is still acceptable.
     """
 
     def __init__(
@@ -121,6 +123,7 @@ class LexicalCompression(BaseStrategy):
         encoding_name: str = "cl100k_base",
         dict_name: str = "lexical",
         dict_path: str | Path | None = None,
+        allow_equal_tokens: bool = False,
         conv_type: str = "chat",
         **kwargs: object,
     ):
@@ -129,10 +132,7 @@ class LexicalCompression(BaseStrategy):
         self.dict_name = dict_name
         self.dict_path = Path(dict_path) if dict_path is not None else None
         self.conv_type = conv_type
-        # Contractions are low-risk; equal BPE length is still a win (shorter text).
-        self._allow_equal_tokens = dict_name == "contractions" or (
-            self.dict_path is not None and "contraction" in self.dict_path.name
-        )
+        self._allow_equal_tokens = bool(allow_equal_tokens)
         if self.dict_path is not None:
             self._mapping = load_dict_path(self.dict_path)
         else:

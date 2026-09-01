@@ -1,4 +1,4 @@
-"""Shared helpers for text-rewriting stages (lexical, abbrev, alias)."""
+"""Shared helpers for text-rewriting stages (lexical, abbrev, alias, number_normalize)."""
 
 from __future__ import annotations
 

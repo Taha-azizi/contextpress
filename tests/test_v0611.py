@@ -1,4 +1,4 @@
-"""Opt-in contractions, wordy_phrases, and number_normalize (0.6.11)."""
+"""Opt-in contractions, wordy_phrases, and number_normalize (0.6.11+)."""
 
 from __future__ import annotations
 
@@ -40,13 +40,36 @@ def test_contractions_dict_loads_and_saves_tokens():
         assert len(enc.encode(dst)) <= len(enc.encode(src))
 
 
+def test_allow_equal_tokens_is_explicit():
+    path = DATA / "contractions_cl100k_base.json"
+    text = "Please do not stop."
+    conv = Conversation(turns=[Turn(role="user", content=text)], type="chat")
+    # Without allow_equal_tokens, equal-BPE contractions may be rejected.
+    strict = LexicalCompression(dict_path=path, encoding_name="cl100k_base").process(conv)
+    equal_ok = LexicalCompression(
+        dict_path=path, encoding_name="cl100k_base", allow_equal_tokens=True
+    ).process(conv)
+    assert equal_ok.turns[0].content != text or "don't" in equal_ok.turns[0].content.lower()
+    # Pipeline stage sets allow_equal_tokens=True for contractions.
+    staged = ContextManager(type="chat").compress(
+        [{"role": "user", "content": text}],
+        token_budget=None,
+        stages=["contractions"],
+        return_stats=True,
+    )
+    assert "don't" in staged.messages[0]["content"].lower()
+    assert strict.turns[0].content in {text, equal_ok.turns[0].content}
+
+
 def test_contractions_via_dict_path_and_stage():
     path = DATA / "contractions_cl100k_base.json"
     conv = Conversation(
         turns=[Turn(role="user", content="Please do not stop. They are ready.")],
         type="chat",
     )
-    out = LexicalCompression(dict_path=path, encoding_name="cl100k_base").process(conv)
+    out = LexicalCompression(
+        dict_path=path, encoding_name="cl100k_base", allow_equal_tokens=True
+    ).process(conv)
     text = out.turns[0].content
     assert "don't" in text.lower() or "do not" not in text.lower()
     staged = ContextManager(type="chat").compress(
