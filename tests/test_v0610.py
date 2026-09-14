@@ -18,7 +18,7 @@ def _long_chat(n: int = 12) -> list[dict[str, str]]:
     return messages
 
 
-def test_trim_not_in_low_preset():
+def test_trim_not_in_low_or_medium():
     assert "trim" in STAGE_ORDER
     low = ContextManager(type="chat", compression="low").compress(
         _long_chat(8), token_budget=None, return_stats=True
@@ -27,8 +27,13 @@ def test_trim_not_in_low_preset():
     med = ContextManager(type="chat", compression="medium").compress(
         _long_chat(8), token_budget=None, return_stats=True
     )
-    assert "trim" in med.stats.stages_run
-    assert med.stats.turns_after < med.stats.turns_before
+    assert "trim" not in med.stats.stages_run
+    assert "recency" in med.stats.stages_run
+    high = ContextManager(type="chat", compression="high").compress(
+        _long_chat(8), token_budget=None, return_stats=True
+    )
+    assert "trim" in high.stats.stages_run
+    assert high.stats.turns_after < high.stats.turns_before
 
 
 def test_trim_keeps_opening_and_last_three():

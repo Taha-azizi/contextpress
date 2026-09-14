@@ -36,7 +36,7 @@ _NON_BUDGET_ORDER: tuple[str, ...] = tuple(s for s in STAGE_ORDER if s != "budge
 _COMPRESSION_PRESETS: dict[str, frozenset[str]] = {
     "low": frozenset({"structure", "lexical", "filler", "abbrev", "alias", "repetition"}),
     "medium": frozenset(
-        {"structure", "lexical", "filler", "abbrev", "alias", "repetition", "trim", "recency"}
+        {"structure", "lexical", "filler", "abbrev", "alias", "repetition", "recency"}
     ),
     "high": frozenset(
         {

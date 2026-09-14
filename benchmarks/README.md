@@ -8,6 +8,7 @@ then writes:
 | Artifact | What |
 | --- | --- |
 | `benchmarks/RESULTS.md` | Full report: every item × preset + stage breakdown |
+| `benchmarks/INFO_FIDELITY.md` | Token savings vs **critical information loss** |
 | `benchmarks/results/runs.jsonl` | One row per compression (gitignored) |
 | `benchmarks/results/summary.json` | Aggregates (gitignored) |
 | `benchmarks/SAVINGS.md` | Shorter marketing brief (in-scope filter) |
@@ -28,6 +29,9 @@ then writes:
 python -m benchmarks.run_savings --rebuild-corpus
 # optional: re-download HF caches
 python -m benchmarks.run_savings --rebuild-corpus --refresh
+
+# token savings vs critical / soft information loss
+python -m benchmarks.info_fidelity
 ```
 
 `benchmarks/data/` is gitignored (licenses allow local measurement; do not republish user text).

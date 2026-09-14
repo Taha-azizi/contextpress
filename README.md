@@ -199,7 +199,7 @@ out = ContextManager().compress(
 5. **Alias** (0.6.10+) — Finds multi-word expressions that appear **3+ times** in the same chat, introduces them once as `Phrase (ABBR)`, then uses `ABBR` afterward (e.g. `Context Press (CP)` … `CP`). Chat/agent only. Skips system / JSON / tool turns. Reverts if the whole conversation would grow.
 6. **Repetition** — TF-IDF cosine similarity; keeps the more recent of similar turns. Tool-call turns are not dropped (0.6.6+).
 7. **Resolution** — Collapses agreed threads into a single `RESOLVED:` synthetic system turn (chat/agent only). Threads that still contain tool/JSON turns are left intact (0.6.6+).
-8. **Trim** (0.6.10+) — Drops the middle of a long thread. Keeps the opening turns, the last three non-system turns, and any tool call/result groups that sat in the gap. Short chats are unchanged. Runs after resolution so completed threads can still collapse. **Not in the ``low`` preset**; ``medium`` / ``high``, or pass ``stages=`` that includes ``trim``.
+8. **Trim** (0.6.10+) — Drops the middle of a long thread. Keeps the opening turns, the last three non-system turns, and any tool call/result groups that sat in the gap. Short chats are unchanged. Runs after resolution so completed threads can still collapse. **Only in the ``high`` preset** (0.6.13+); or pass ``stages=`` that includes ``trim``.
 9. **Recency** — Extractively compresses older turns (or low-relevance chunks in `rag_doc`) while preserving the latest context. JSON blobs, `` ```json `` fences, and tool turns are not summarized (0.6.6+).
 10. **Budget** — Enforces a hard token limit with `tiktoken`, removing oldest turns first while protecting system prompts and recent turns. Assistant ``tool_calls`` and matching ``role: tool`` results are dropped together (0.6.4+); Anthropic ``tool_use``/``tool_result`` and Gemini ``functionCall``/``functionResponse`` pairs stay intact the same way (0.6.7+/0.6.8+).
 
@@ -209,6 +209,37 @@ out = ContextManager().compress(
 est = cm.estimate_cost(messages, provider="openai", model="gpt-4o-mini", output_tokens=200)
 print(est.total_cost_usd, est.to_dict())
 ```
+
+## Prompt caching (OpenAI / Anthropic / Gemini)
+
+Contextpress does **not** restore provider prompt caches. Caches are **exact prefix matches**. If you re-run `compress()` on the **full** history every turn, alias / repetition / trim / recency / resolution can rewrite or drop **earlier** turns, the prefix bytes change, and the next request is billed as a cache **miss** (and may pay a cache-**write** surcharge on Anthropic / GPT-5.6+).
+
+That can **cost more** than leaving the raw prompt cached:
+
+| Situation | What happens |
+|-----------|----------------|
+| No cache, or the bloated part is never in the prefix (pretty tool JSON, RAG chunk stuffed at the **end**) | Compression savings are real. |
+| Stable system + tools + long history already getting ~90% cache reads | Recompressing the whole thread is often a **net loss**, especially at `low` (~6% tokens vs ~90% off cached input). |
+| `medium`/`high` (~20–50% fewer tokens) vs Anthropic-style 0.1× cache reads | `high` (trim) often busts the prefix. `medium` (recency, no trim) still rewrites older turns — check `compare_cache_tradeoff`. |
+
+Check your numbers:
+
+```python
+from contextpress.costs import compare_cache_tradeoff
+
+# 10k-token raw prompt, 6% cut (low), 50% of tokens were cache hits at 0.1×
+t = compare_cache_tradeoff(10_000, 9_400, cache_hit_rate=0.5, cache_read_multiplier=0.1)
+print(t.compress_is_cheaper, t.break_even_cache_hit_rate, t.to_dict())
+```
+
+**Cache-safe patterns**
+
+1. Compress only the **uncached tail** (new tool result, new retrieved files). Leave the already-sent prefix untouched.
+2. Compact **once** into a frozen summary/prefix, then **append** new turns without re-pressing the prefix until you explicitly recompact.
+3. Put static system / tool schemas first and **do not** run Contextpress on them (system turns are already passed through).
+4. Prefer `stages=["structure"]` (or filler on the new tool payload only) when the prefix must stay identical.
+
+Do **not** use `estimate_cost_saved_usd` as the bill delta if the uncompressed traffic was mostly cache reads — that field assumes uncached list prices on both sides.
 
 **USD on compression stats** (0.6.1+, opt-in):
 
@@ -267,7 +298,7 @@ See [`ROADMAP.md`](ROADMAP.md) for positioning vs heavier compression stacks and
 | Preset | Non-budget stages enabled |
 |--------|-----------------------------|
 | **low** | structure, lexical, filler, abbrev, alias, repetition |
-| **medium** | structure, lexical, filler, abbrev, alias, repetition, trim, recency |
+| **medium** | structure, lexical, filler, abbrev, alias, repetition, recency |
 | **high** | structure, lexical, filler, abbrev, alias, repetition, trim, resolution, recency |
 
 The **budget** stage is separate: if you pass **`token_budget=<int>`**, the budget stage runs as well (unless you opt out with `disable=["budget"]` or omit `"budget"` from an explicit `stages=` list). If `token_budget` is `None`, the budget stage does not run.

@@ -121,3 +121,87 @@ def estimate_token_cost(
         input_usd_per_1m=inp_rate,
         output_usd_per_1m=out_rate,
     )
+
+
+@dataclass(frozen=True)
+class CacheTradeoff:
+    """Compare raw+prefix-cache vs compressed-as-uncached input cost.
+
+    ``effective_*_tokens`` are uncached-equivalent tokens (cache hits count as
+    ``cache_read_multiplier`` each). ``compress_is_cheaper`` is True only when
+    rewriting the prompt still beats keeping the raw prefix in cache.
+    """
+
+    tokens_raw: int
+    tokens_compressed: int
+    cache_hit_rate: float
+    cache_read_multiplier: float
+    effective_cached_raw_tokens: float
+    effective_compressed_uncached_tokens: float
+    compress_is_cheaper: bool
+    break_even_cache_hit_rate: float | None
+
+    def to_dict(self) -> dict[str, float | int | bool | None]:
+        return {
+            "tokens_raw": self.tokens_raw,
+            "tokens_compressed": self.tokens_compressed,
+            "cache_hit_rate": self.cache_hit_rate,
+            "cache_read_multiplier": self.cache_read_multiplier,
+            "effective_cached_raw_tokens": self.effective_cached_raw_tokens,
+            "effective_compressed_uncached_tokens": self.effective_compressed_uncached_tokens,
+            "compress_is_cheaper": self.compress_is_cheaper,
+            "break_even_cache_hit_rate": self.break_even_cache_hit_rate,
+        }
+
+
+def compare_cache_tradeoff(
+    tokens_raw: int,
+    tokens_compressed: int,
+    *,
+    cache_hit_rate: float,
+    cache_read_multiplier: float = 0.1,
+) -> CacheTradeoff:
+    """Would compressing (and missing the prefix cache) beat caching the raw prompt?
+
+    Providers match **exact prefixes**. Re-running Contextpress on the full
+    history usually changes tokens in the prefix, so the compressed prompt is
+    billed as uncached. Typical ``cache_read_multiplier``: Anthropic / recent
+    OpenAI cached input ≈ ``0.1``; older OpenAI automatic cache ≈ ``0.5``.
+
+    ``cache_hit_rate`` is the share of *raw* input tokens that would have been
+    cache reads (0–1).
+    """
+    if tokens_raw < 0 or tokens_compressed < 0:
+        raise ValueError("token counts must be >= 0")
+    if not 0.0 <= cache_hit_rate <= 1.0:
+        raise ValueError("cache_hit_rate must be between 0 and 1")
+    if not 0.0 <= cache_read_multiplier <= 1.0:
+        raise ValueError("cache_read_multiplier must be between 0 and 1")
+
+    h = cache_hit_rate
+    r = cache_read_multiplier
+    effective_raw = tokens_raw * ((1.0 - h) + h * r)
+    effective_comp = float(tokens_compressed)
+    denom = 1.0 - r
+    if tokens_raw <= 0 or denom <= 0:
+        break_even: float | None = None
+    else:
+        # h where tokens_compressed == tokens_raw * (1 - h*(1-r))
+        ratio = tokens_compressed / tokens_raw
+        break_even = (1.0 - ratio) / denom
+        if break_even < 0.0:
+            break_even = 0.0
+        elif break_even > 1.0:
+            break_even = 1.0
+        break_even = round(break_even, 4)
+
+    return CacheTradeoff(
+        tokens_raw=int(tokens_raw),
+        tokens_compressed=int(tokens_compressed),
+        cache_hit_rate=h,
+        cache_read_multiplier=r,
+        effective_cached_raw_tokens=round(effective_raw, 2),
+        effective_compressed_uncached_tokens=round(effective_comp, 2),
+        compress_is_cheaper=effective_comp < effective_raw,
+        break_even_cache_hit_rate=break_even,
+    )

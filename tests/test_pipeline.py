@@ -285,7 +285,8 @@ def test_preset_medium_adds_recency():
     )
     assert p.structure.enabled and p.lexical.enabled and p.filler.enabled and p.repetition.enabled
     assert p.abbrev.enabled and p.alias.enabled
-    assert p.recency.enabled and p.trim.enabled
+    assert p.recency.enabled
+    assert not p.trim.enabled
     assert not p.resolution.enabled
 
 

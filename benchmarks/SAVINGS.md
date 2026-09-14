@@ -2,37 +2,37 @@
 
 Contextpress is for **long chats, files stuffed into the prompt, and pretty-printed tool JSON** — the work that repeats on every API call. It is not for a two-line FAQ. Those jobs are out of this report.
 
-On **206 in-scope workloads**, `medium` cut about **53% of input tokens**. `low` (minify JSON, lexical word swaps, drop filler) cut about **2%** overall, and about **11%** on pretty tool JSON.
+On **206 in-scope workloads**, `medium` cut about **23% of input tokens**. `low` (minify JSON, lexical word swaps, drop filler) cut about **2%** overall, and about **11%** on pretty tool JSON.
 
 ## What that is worth in a real month
 
-Assume **70% of an LLM bill is input** (history, files, tools) and 30% is the completion. Savings below use the in-scope **53%** input cut at `medium` (about **37% off the whole invoice** under that split). List prices: gpt-4o input $2.50 / 1M tokens; Claude Sonnet ~$3 / 1M. Your mix will differ; the shape of the math will not.
+Assume **70% of an LLM bill is input** (history, files, tools) and 30% is the completion. Savings below use the in-scope **23%** input cut at `medium` (about **16% off the whole invoice** under that split). List prices: gpt-4o input $2.50 / 1M tokens; Claude Sonnet ~$3 / 1M. Your mix will differ; the shape of the math will not.
 
-| who | LLM bill | saved at 53% input | per year | that money is |
+| who | LLM bill | saved at 23% input | per year | that money is |
 | --- | --- | --- | --- | --- |
-| Solo / freelancer already spending ~$150/month on API | $150/mo | $56/mo | $668/yr | a month of ChatGPT Plus, or two extra long coding sessions you no longer have to truncate |
-| Small startup at ~$5,000/month LLM | $5,000/mo | $1,855/mo | $22,260/yr | a year of a seat like Linear/Notion, or a contractor day each month |
-| Product with agents at ~$20,000/month LLM | $20,000/mo | $7,420/mo | $89,040/yr | a junior-engineer intern month, or a dedicated staging GPU you were about to rent to 'just use a bigger context model' |
+| Solo / freelancer already spending ~$150/month on API | $150/mo | $24/mo | $290/yr | a month of ChatGPT Plus, or two extra long coding sessions you no longer have to truncate |
+| Small startup at ~$5,000/month LLM | $5,000/mo | $805/mo | $9,660/yr | a year of a seat like Linear/Notion, or a contractor day each month |
+| Product with agents at ~$20,000/month LLM | $20,000/mo | $3,220/mo | $38,640/yr | a junior-engineer intern month, or a dedicated staging GPU you were about to rent to 'just use a bigger context model' |
 
 ### Opportunity cost (usually the better pitch)
 
-Keep the same bill and buy **~53% more context** instead of a smaller invoice:
+Keep the same bill and buy **~23% more context** instead of a smaller invoice:
 
-- A developer who hits the wall at turn 20 can keep ~53% more of the thread and stop pasting 'summary so far' by hand.
-- A startup can attach ~53% more retrieved files per question before jumping to a 128k/1M model tier.
+- A developer who hits the wall at turn 20 can keep ~23% more of the thread and stop pasting 'summary so far' by hand.
+- A startup can attach ~23% more retrieved files per question before jumping to a 128k/1M model tier.
 - An agent product can retain pretty tool traces instead of dropping them, without paying another model to summarize first. Contextpress itself is **$0 API** — it runs on CPU.
 
-`low` does not drop mid-thread turns, but it does swap wording and strip hedges. Same $5k/month startup at `low` is about **$70/month** ($840/year). `medium` adds trim (drop the middle of long chats) plus recency.
+`low` does not drop mid-thread turns, but it does swap wording and strip hedges. Same $5k/month startup at `low` is about **$70/month** ($840/year). `medium` adds recency (shorten older leftover turns, no middle-drop).
 
 ## Answer-quality risk (rough, no judge model)
 
-We did not A/B the model's final reply. Risk is what the pipeline is **allowed to delete**, plus the contract: system prompt stays; the last 3 non-system turns stay verbatim. Trim (on `medium` / `high`) drops the middle of long threads and leaves a stub.
+We did not A/B the model's final reply. Risk is what the pipeline is **allowed to delete**, plus the contract: system prompt stays; the last 3 non-system turns stay verbatim. Trim (on `high` only) drops the middle of long threads and leaves a stub.
 
 | preset | input cut (in-scope median) | risk to the final answer |
 | --- | --- | --- |
 | `low` | ~2% | **Low.** Does not drop turns. Lexical may change wording (utilize → use); filler strips empty hedges. Skip on tone-sensitive or quote-verbatim threads. |
-| `medium` | ~53% | **Low–medium.** Long chats drop the middle (opening + last 3 stay). Older leftover turns may also be extractively shortened. Fine for 'continue this work'. Not for audits that need every old number verbatim. |
-| `high` | ~53% | **Medium.** Finished threads can collapse to a stub. Use when old resolved topics should leave the window. |
+| `medium` | ~23% | **Low–medium.** Does not drop mid-thread turns. Older leftover turns may be extractively shortened (recency). Fine for 'continue this work'. Not for audits that need every old number verbatim. |
+| `high` | ~53% | **Medium.** Trim drops the middle; finished threads can collapse to a stub. Use when old resolved topics should leave the window. |
 
 Do not use a hard `token_budget` as a 'savings' number — that is truncation. It can drop tools and, as a last resort, the system prompt.
 
@@ -41,32 +41,32 @@ Do not use a hard `token_budget` as a 'savings' number — that is truncation. I
 | job | n | low | medium | high |
 | --- | --- | --- | --- | --- |
 | Agent / tool JSON | 4 | 11.2% | 11.2% | 11.2% |
-| agent_tools | 2 | 0.7% | 18.1% | 18.1% |
-| Long chats | 194 | 2.3% | 55.9% | 55.9% |
+| agent_tools | 2 | 0.7% | 4.4% | 18.1% |
+| Long chats | 194 | 2.3% | 23.1% | 55.9% |
 | Files in the prompt | 6 | 5.4% | 43.0% | 43.0% |
 
 | preset | median | p10 | p90 |
 | --- | --- | --- | --- |
 | low | 2.4% | 0.5% | 22.2% |
-| medium | 53.5% | 22.7% | 77.3% |
+| medium | 22.9% | 3.5% | 45.8% |
 | high | 53.5% | 22.7% | 77.3% |
 
-**Chats:** `low` does not drop turns. Lexical swaps multi-token words; filler strips hedges. `medium` **trims the middle** (opening + last 3 + a stub) and may recency-shrink the leftover opening.
+**Chats:** `low` does not drop turns. Lexical swaps multi-token words; filler strips hedges. `medium` **recency-shrinks older leftover turns** (opening + last 3 stay verbatim). `high` **trims the middle**.
 
 Long chats in this run (not a single example):
 
 | id | turns in | low | medium |
 | --- | --- | --- | --- |
-| github:pallets/flask#5881 | 19 | 2,270→2,178 (4.05%) | 2,270→874 (61.5%) |
-| github:pallets/flask#4027 | 25 | 2,002→1,897 (5.24%) | 2,002→410 (79.52%) |
-| github:pallets/flask#4494 | 20 | 1,882→1,662 (11.69%) | 1,882→241 (87.19%) |
+| github:pallets/flask#5881 | 19 | 2,270→2,178 (4.05%) | 2,270→1,880 (17.18%) |
+| github:pallets/flask#4027 | 25 | 2,002→1,897 (5.24%) | 2,002→1,897 (5.24%) |
+| github:pallets/flask#4494 | 20 | 1,882→1,662 (11.69%) | 1,882→1,257 (33.21%) |
 | github:psf/requests#5642 | 4 | 435→332 (23.68%) | 435→332 (23.68%) |
-| wildchat:b04d39881b88 | 14 | 5,033→4,158 (17.39%) | 5,033→569 (88.69%) |
-| wildchat:bbd23700fb46 | 14 | 4,617→3,235 (29.93%) | 4,617→2,060 (55.38%) |
-| wildchat:a47a2648047c | 18 | 3,863→3,556 (7.95%) | 3,863→774 (79.96%) |
-| wildchat:0414fb6ec751 | 16 | 3,766→2,575 (31.63%) | 3,766→764 (79.71%) |
-| wildchat:7e027908ee9f | 28 | 3,675→1,592 (56.68%) | 3,675→393 (89.31%) |
-| wildchat:49f2df1f5703 | 12 | 3,545→1,881 (46.94%) | 3,545→647 (81.75%) |
+| wildchat:b04d39881b88 | 14 | 5,033→4,158 (17.39%) | 5,033→2,179 (56.71%) |
+| wildchat:bbd23700fb46 | 14 | 4,617→3,235 (29.93%) | 4,617→3,088 (33.12%) |
+| wildchat:a47a2648047c | 18 | 3,863→3,556 (7.95%) | 3,863→3,139 (18.74%) |
+| wildchat:0414fb6ec751 | 16 | 3,766→2,575 (31.63%) | 3,766→2,194 (41.74%) |
+| wildchat:7e027908ee9f | 28 | 3,675→1,592 (56.68%) | 3,675→1,127 (69.33%) |
+| wildchat:49f2df1f5703 | 12 | 3,545→1,881 (46.94%) | 3,545→1,273 (64.09%) |
 
 ### Flask #4494 — `low` vs `medium` (full compressed threads)
 
@@ -108,13 +108,24 @@ user: Comment by Sundava: Can you please stop introducing breaking changes in mi
 user: What is the current status and likely resolution?
 ```
 
-**medium:** 1,882 → 241 (87.19%), turns 20 → 7. stages: structure, lexical, filler, abbrev, alias, repetition, trim, recency
+**medium:** 1,882 → 1,257 (33.21%), turns 20 → 18. stages: structure, lexical, filler, abbrev, alias, repetition, recency
 
 ```
 system: You track public GitHub issues and summarize status.
 user: **This issue tracker is a tool to address bugs in Flask itself. Please use Pallets Discord or Stack Overflow for questions about your own code.
 user: Comment by jamesL92: / Noticed that flask 2.0.x doesn't have this issue, but may want to backfix if Flask 1.1.x is still being supported with patch fixes
-assistant: [12 earlier messages omitted]
+user: Additionally, please use a tool like [pip-tools](https://pypi.org/project/pip-tools/) to pin your dependencies and control when you get updates. @davidism how do you use pip-tools to pin the version?
+user: Comment by ThiefMaster: When installing your dependencies you specify them without versions (in requirements.in) and then use `pip-compile` to build a `requirements.txt` with pinned version numbers. Then those version nu…
+user: Comment by aktiver: / How can we keep using Flask==1.1.1? We have an entire app built on it that will take a significant time to refac for Flask 2.x.
+user: Comment by ThiefMaster: As someone maintaining a large Flask-based project, I don't think it will take you a "meaning time" to make it compatible with Flask 2.0, unless you are still on Python 2.7 of course.., pin Flask'…
+user: Comment by aktiver: > As someone maintaining a large Flask-based project, I don't think it will take you a "meaning time" to make it compatible with Flask 2.0, unless you are still on Python 2.7 of course.. > >, pin Flas…
+user: Comment by ThiefMaster: / You need to add it as an explicit dependency
+user: Comment by aktiver: / > You need to add it as an explicit dependency /  / I have done that, and it does not work, see reqs.txt here: / ``` / Jinja2==3.0.3 / itsdangerous==2.0.1 / Flask==1.1.1 / ``` / 
+user: Comment by supreme-core: / it works for me /  / > > You need to add it as an explicit dependency / >  / > I have done that, and it does not work, see reqs.txt here: / > ``` / > Jinja2==3.0.3 / > itsdangerous==2.0.1 / > F…
+user: Comment by aruna-muthu: / > after pinning Jinja2 to 3.0.3, there encounter another error.. ` from werkzeug.wrappers import BaseResponse ImportError (WIBI): cannot import name 'BaseResponse' from 'werkzeug.wrappers'` and …
+user: Comment by sandeep-yarasani: / > after pinning Jinja2 to 3.0.3, there encounter another error.. / > ``` / >     from werkzeug.wrappers import BaseResponse / > ImportError: cannot import name 'BaseResponse' from 'werkzeug…
+user: Comment by sandeep-yarasani: > > after pinning Jinja2 to 3.0.3, there encounter another error.. ` from werkzeug.WIBI: cannot import name 'BaseResponse' from 'werkzeug.wrappers'` and my requirements.txt is `Jinja2==3.0.3 …
+user: Comment by tachyondecay: > using the above mentioned library versions did resolve this issue, but I am curious as to what caused this error in the first palce You are using an outdated version of Flask, and newer version…
 user: Comment by tachyondecay: > i am still having this issue with the latest version of Flask You aren't, as that has [changed in the latest version](https://github.com/pallets/flask/blob/2.1.1/src/flask/app.py#L25). Please a…
 user: Comment by Sundava: Can you please stop introducing breaking changes in minor versions? And yeah, I know about the pamphlet about "SemVer will not save you", which states the problem is people incorrectly using SemVer. O…
 user: What is the current status and likely resolution?
@@ -128,7 +139,7 @@ user: What is the current status and likely resolution?
 
 ### Long chat / support thread
 
-1,882 → 241 tokens (**87.19%** at `medium`; turns 20 → 7).
+1,882 → 1,257 tokens (**33.21%** at `medium`; turns 20 → 18).
 Source: https://github.com/pallets/flask/issues/4494
 Real public issue thread (all comment turns are user-authored).
 
@@ -220,4 +231,4 @@ Two-turn support FAQs, already-minified JSON, and short dense encyclopedia pages
 
 ## How this was measured
 
-Tier 1 only (no LLM compressor). 222 raw items → 206 in-scope. 888 compressions in 218s. Re-run: `python -m benchmarks.run_savings --rebuild-corpus`.
+Tier 1 only (no LLM compressor). 222 raw items → 206 in-scope. 888 compressions in 216s. Re-run: `python -m benchmarks.run_savings --rebuild-corpus`.

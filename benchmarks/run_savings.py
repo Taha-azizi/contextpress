@@ -53,7 +53,7 @@ VARIANTS: tuple[dict[str, Any], ...] = (
         "budget": None,
         "lossy": True,
         "risk": "low–medium",
-        "label": "medium — low + trim + recency",
+        "label": "medium — low + recency (no trim)",
     },
     {
         "name": "high",
@@ -566,7 +566,7 @@ def write_report(
             f"`low` does not drop mid-thread turns, but it does swap wording "
             f"and strip hedges. Same $5k/month startup at `low` is about "
             f"**{_money(low_mo)}/month** ({_money(low_mo * 12)}/year). "
-            "`medium` adds trim (drop the middle of long chats) plus recency."
+            "`medium` adds recency (shorten older leftover turns, no middle-drop)."
         )
         lines.append("")
 
@@ -575,7 +575,7 @@ def write_report(
     lines.append(
         "We did not A/B the model's final reply. Risk is what the pipeline is "
         "**allowed to delete**, plus the contract: system prompt stays; "
-        "the last 3 non-system turns stay verbatim. Trim (on `medium` / `high`) "
+        "the last 3 non-system turns stay verbatim. Trim (on `high` only) "
         "drops the middle of long threads and leaves a stub."
     )
     lines.append("")
@@ -593,16 +593,17 @@ def write_report(
                 [
                     "`medium`",
                     f"~{mid_pct}%",
-                    "**Low–medium.** Long chats drop the middle (opening + last "
-                    "3 stay). Older leftover turns may also be extractively "
-                    "shortened. Fine for 'continue this work'. Not for audits "
-                    "that need every old number verbatim.",
+                    "**Low–medium.** Does not drop mid-thread turns. Older leftover "
+                    "turns may be extractively shortened (recency). Fine for "
+                    "'continue this work'. Not for audits that need every old "
+                    "number verbatim.",
                 ],
                 [
                     "`high`",
                     f"~{high_pct}%",
-                    "**Medium.** Finished threads can collapse to a stub. "
-                    "Use when old resolved topics should leave the window.",
+                    "**Medium.** Trim drops the middle; finished threads can "
+                    "collapse to a stub. Use when old resolved topics should "
+                    "leave the window.",
                 ],
             ],
         )
@@ -644,8 +645,8 @@ def write_report(
     lines.append("")
     lines.append(
         "**Chats:** `low` does not drop turns. Lexical swaps multi-token "
-        "words; filler strips hedges. `medium` **trims the middle** "
-        "(opening + last 3 + a stub) and may recency-shrink the leftover opening."
+        "words; filler strips hedges. `medium` **recency-shrinks older leftover "
+        "turns** (opening + last 3 stay verbatim). `high` **trims the middle**."
     )
     lines.append("")
     chat_table = _chat_gallery_rows(scoped)
