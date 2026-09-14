@@ -361,8 +361,8 @@ def write_report(
         "3. **Contract checks** — system prompt unchanged; last-user keywords present.",
         "",
         "Wording stages (`low`) should show **token save >> critical loss**. "
-        "Trim/recency (`medium`/`high`) should raise critical loss when numbers "
-        "and URLs lived in dropped mid-thread turns.",
+        "Recency (`medium`) may drop IDs in shortened older sentences. "
+        "Trim (`high`) removes mid-thread turns.",
         "",
         "## Headline (all items)",
         "",
