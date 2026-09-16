@@ -425,16 +425,17 @@ def write_report(
             f"{a['system_ok_rate']}% | {a['last_user_ok_rate']}% |"
         )
 
-    lines.extend(["", "## By bucket × preset (mean critical loss / mean token save)", ""])
-    lines.append("| bucket | low save→loss | medium save→loss | high save→loss |")
-    lines.append("| --- | --- | --- | --- |")
+    lines.extend(["", "## By bucket × preset (mean token save → **weighted** critical loss)", ""])
+    lines.append("| bucket | n | low | medium | high |")
+    lines.append("| --- | --- | --- | --- | --- |")
     for bucket, presets in summary["by_bucket"].items():
-        cells = [bucket]
+        n_items = presets["low"]["n"]
+        cells = [bucket, str(n_items)]
         for p in PRESETS:
             a = presets[p]
             cells.append(
                 f"{_fmt(a['mean_token_savings_pct'], 1)} → "
-                f"{_fmt(a['mean_critical_info_loss_pct'], 1)}"
+                f"{_fmt(a['weighted_critical_info_loss_pct'], 1)}"
             )
         lines.append("| " + " | ".join(cells) + " |")
 

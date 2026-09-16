@@ -4,6 +4,13 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.14] - 2026-09-16
+
+- **Docs** — README and fidelity report publish current measured token-save vs
+  critical-fact loss after ``medium`` dropped ``trim`` (0.6.13): ``low`` ~6% /
+  ~2% fact loss; ``medium`` ~23% / ~15%; ``high`` ~48% / ~27%; plus per-type
+  (chat / rag_doc / agent) tables.
+
 ## [0.6.13] - 2026-09-14
 
 - **``medium`` no longer runs ``trim``** — wording stages + recency only, so

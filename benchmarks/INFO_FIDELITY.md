@@ -37,14 +37,14 @@ Quote **mean token save** + **weighted critical loss** (facts pooled). Median is
 | `medium` | 23.5% | **20.4%** | 0.0% | 6.4% | 100.0% | 100.0% |
 | `high` | 50.8% | **42.3%** | 33.3% | 14.0% | 100.0% | 99.5% |
 
-## By bucket × preset (mean critical loss / mean token save)
+## By bucket × preset (mean token save → **weighted** critical loss)
 
-| bucket | low save→loss | medium save→loss | high save→loss |
-| --- | --- | --- | --- |
-| agent | 11.3% → 1.7% | 11.3% → 1.7% | 11.3% → 1.7% |
-| agent_tools | 0.2% → 0.0% | 1.1% → 0.0% | 5.7% → 2.1% |
-| chat | 5.9% → 1.1% | 23.5% → 20.4% | 50.8% → 42.3% |
-| files | 13.1% → 0.0% | 33.4% → 23.2% | 33.8% → 24.0% |
+| bucket | n | low | medium | high |
+| --- | --- | --- | --- | --- |
+| agent | 5 | 11.3% → 2.7% | 11.3% → 2.7% | 11.3% → 2.7% |
+| agent_tools | 8 | 0.2% → 0.0% | 1.1% → 0.0% | 5.7% → 4.4% |
+| chat | 202 | 5.9% → 1.6% | 23.5% → 22.6% | 50.8% → 45.0% |
+| files | 7 | 13.1% → 0.0% | 33.4% → 14.5% | 33.8% → 17.3% |
 
 ## Highest critical loss examples (`medium`, chats with ≥5 critical spans)
 

@@ -210,6 +210,27 @@ est = cm.estimate_cost(messages, provider="openai", model="gpt-4o-mini", output_
 print(est.total_cost_usd, est.to_dict())
 ```
 
+## Measured savings vs critical-information loss (0.6.14)
+
+Deterministic factoid check on **222** local workloads (no LLM judge): URLs, versions, 3+ digit numbers, paths, identifiers. **Quote mean token save + weighted critical-fact loss.** `medium` is recency only; `high` adds trim. Full tables: [`benchmarks/INFO_FIDELITY.md`](benchmarks/INFO_FIDELITY.md).
+
+| Preset | What runs | Tokens saved (mean) | Critical-fact loss | Facts kept |
+|--------|-----------|--------------------:|-------------------:|-----------:|
+| `low` | wording only | **6.0%** | **1.6%** | **98.4%** |
+| `medium` | low + recency | **22.7%** | **15.2%** | **84.8%** |
+| `high` | medium + trim + resolution | **47.7%** | **27.3%** | **72.7%** |
+
+By context type (`ContextManager(type=…)`):
+
+| Type | n | `low` save → fact loss | `medium` | `high` |
+|------|--:|------------------------|----------|--------|
+| **chat** | 202 | 5.9% → 1.6% | 23.5% → 22.6% | 50.8% → 45.0% |
+| **rag_doc** (files) | 7 | 13.1% → 0.0% | 33.4% → 14.5% | 33.8% → 17.3% |
+| **agent** (pretty tool JSON) | 5 | 11.3% → 2.7% | same (structure minify) | same |
+| **agent tools** (Glaive) | 8 | 0.2% → 0.0% | 1.1% → 0.0% | 5.7% → 4.4% |
+
+Typical chat (median fact loss): **0%** on `low`/`medium`, **33%** on `high`. Agents should stay on `low`; files get most of the win at `medium`; `high` is the long-chat lever.
+
 ## Prompt caching (OpenAI / Anthropic / Gemini)
 
 Contextpress does **not** restore provider prompt caches. Caches are **exact prefix matches**. If you re-run `compress()` on the **full** history every turn, alias / repetition / trim / recency / resolution can rewrite or drop **earlier** turns, the prefix bytes change, and the next request is billed as a cache **miss** (and may pay a cache-**write** surcharge on Anthropic / GPT-5.6+).
