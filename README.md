@@ -1,28 +1,53 @@
 # contextpress
 
-Deterministic context compression for LLM chat, RAG, and agent pipelines.
-Created and maintained by **[Taha Azizi](https://github.com/Taha-azizi)**.
+[![PyPI version](https://img.shields.io/pypi/v/contextpress)](https://pypi.org/project/contextpress/)
+[![Python versions](https://img.shields.io/pypi/pyversions/contextpress)](https://pypi.org/project/contextpress/)
+[![License](https://img.shields.io/github/license/Taha-azizi/contextpress)](LICENSE)
+[![PyPI downloads](https://img.shields.io/pypi/dm/contextpress)](https://pypi.org/project/contextpress/)
 
-**Write-up:** [Introducing contextpress](https://pub.towardsai.net/introducing-contextpress-the-python-library-that-refactors-your-llm-context-c57965617edb) — Towards AI (Medium)
+**Deterministic context compression for LLM chat, RAG, and agent pipelines** — trim token bloat before every model call.
 
-On the **`low`** preset, a 222-item local study measured about **6% fewer tokens** with about **99% of critical facts kept** (weighted: 6.0% token save, 98.4% factoids retained; mean retention 99.0%). No API key for Tier 1.
+- **Tier 1, no API key** — `ContextManager` runs deterministic NLP stages (structure, filler, repetition, recency, budget, …). Optional **Tier 2** via `llm_backend=` when you want semantic dedupe/summarize.
+- **`chat` · `rag_doc` · `agent`** — profiles tune filler, resolution, recency, and tool-turn handling for dialogue, RAG chunks, and agent threads.
+- **Measured tradeoffs** — **222** local workloads ([method](benchmarks/INFO_FIDELITY.md)): `low` **6.0%** token save / **1.6%** critical-fact loss; `medium` **22.7%** / **15.2%**; `high` **47.7%** / **27.3%** (weighted critical loss).
 
----
+Created and maintained by **[Taha Azizi](https://github.com/Taha-azizi)**. **Write-up:** [Introducing contextpress](https://pub.towardsai.net/introducing-contextpress-the-python-library-that-refactors-your-llm-context-c57965617edb) (Towards AI).
 
-## Project Status
+## Install
 
-> **Status: Actively stabilizing.** **0.6.x is stable for Tier 1** (deterministic, offline NLP — no LLM required).
->
-> - Tier 1 (`low` / `medium` / `high`) is the supported product surface. Behavior is covered by tests; numbers below are from the current fidelity corpus.
-> - Work in this series is tightening contracts, docs, and release hygiene — not a freeze, and not a rewrite.
-> - **PRs are welcome.** Please expect a review cycle of **2–4 weeks**. If you need a change immediately, **fork** and iterate on your own timeline.
-> - **License:** [Apache 2.0](LICENSE) — no warranty, no liability. See §7 and §8 of the license for the legal text.
->
-> Bugs: open a [GitHub issue](https://github.com/Taha-azizi/contextpress/issues) with a minimal reproduction. Security: see [SECURITY.md](SECURITY.md).
+```bash
+pip install contextpress
+```
 
----
+**PyPI:** [pypi.org/project/contextpress](https://pypi.org/project/contextpress)
 
-## Headline results (0.6.14 study)
+From a git clone:
+
+```bash
+pip install -e .
+```
+
+## API at a glance
+
+| Need | Method |
+|------|--------|
+| Compress | `cm.compress(messages, token_budget=…)` |
+| Token count | `cm.estimate_tokens(messages)` |
+| Dry-run stats | `cm.preview(...)`, `cm.fits_budget(...)` |
+| Pick a preset | `cm.compare_presets(...)`, `cm.recommend_preset(...)` |
+| Batch / async | `cm.compress_many(...)`, `await cm.compress_async(...)` |
+
+```python
+from contextpress import ContextManager
+
+cm = ContextManager(type="chat")  # or "rag_doc", "agent"
+out = cm.compress(messages, token_budget=2000, return_stats=True)
+print(out.stats.token_savings_pct, out.stats.stages_run)
+```
+
+Pass **`return_stats=True`** for `CompressionResult` (`messages`, token counts, stages). Default **`compression="medium"`**; **`token_budget`** enables the budget stage.
+
+## Fidelity tradeoffs (0.6.14 study)
 
 Deterministic factoid check on **222** local workloads (no LLM judge). Quote **mean token save** and **weighted critical-fact retention**. Full tables: [`benchmarks/INFO_FIDELITY.md`](benchmarks/INFO_FIDELITY.md).
 
@@ -70,18 +95,6 @@ Typical chat (median fact loss): **0%** on `low`/`medium`, **33%** on `high`. Ag
 - You need semantic “keep what the model would care about” — that is optional **Tier 2**, not Tier 1.
 
 ---
-
-## Install
-
-```bash
-pip install contextpress
-```
-
-If you cloned this repository:
-
-```bash
-pip install -e .
-```
 
 ## Quickstart
 
@@ -429,6 +442,16 @@ Subclass `contextpress.strategies.base.BaseStrategy`, implement `process(self, c
 ## Why contextpress
 
 Long chat histories inflate token usage, bury important facts (lost-in-the-middle), and repeat stale or redundant content. `contextpress` trims noise, merges resolved threads, and enforces budgets with deterministic Tier 1 NLP so applications stay within context limits without extra services.
+
+## Project status
+
+> **Stable for its original use case — maintained at a low cadence.** Tier 1 (`low` / `medium` / `high`) is deterministic, offline, and covered by tests; fidelity numbers above come from the current corpus.
+>
+> - **Provided as-is for its original use case.** Bug fixes are reviewed when time permits; **new features are not actively developed** (docs and contract fixes still land in 0.6.x).
+> - **PRs are welcome**, but expect a review cycle of **2–4 weeks**. Need something sooner? **Fork** and iterate on your timeline.
+> - **License:** [Apache 2.0](LICENSE) — no warranty, no liability. See §7 and §8 of the license for the legal text.
+>
+> Bugs: [GitHub issues](https://github.com/Taha-azizi/contextpress/issues) with a minimal reproduction. Security: [SECURITY.md](SECURITY.md). Feature requests may be closed with a pointer to fork.
 
 ## Dependencies
 
