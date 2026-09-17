@@ -33,5 +33,8 @@ jobs:
       - name: Format check (black)
         run: black --check contextpress tests examples try_compress.py
 
+      - name: Version consistency
+        run: python scripts/check_version.py
+
       - name: Run tests
         run: pytest tests -q

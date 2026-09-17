@@ -19,12 +19,7 @@ deterministic Tier‑1 NLP for chat / RAG / agent **message histories**, with op
 - Profiles: `chat` / `rag_doc` / `agent`
 - Observability: preview, compare_presets, recommend_preset, stats, fixtures
 - Optional Tier‑2 without forcing LLM for Tier‑1
-
-### Gaps we will close (on-strategy)
-
-1. **Structure compaction** — JSON minify, whitespace/log-line cleanup inside non-system turns (stdlib only).
-2. **Cost estimation** — approximate USD from token counts + bundled pricing estimates.
-3. Later: richer agent-trace helpers, optional cost fields on stats — still no transformers/proxy.
+- Structure compaction (JSON minify, whitespace/log cleanup) and approximate USD cost estimates — shipped in 0.6.x
 
 ### Explicit non-goals (near term)
 
@@ -33,24 +28,26 @@ deterministic Tier‑1 NLP for chat / RAG / agent **message histories**, with op
 - Local GPT‑2 / BERT / LLMLingua as required path
 - Cloning another project's API surface
 
-## 0.6.x plan
+## 0.6.x — shipped (stable for Tier 1)
 
-| Version | Focus |
-|---------|--------|
-| **0.6.0** | `structure` stage + `estimate_cost()` + this roadmap — shipped |
-| **0.6.1** | Wire estimated USD into `CompressionStats` / reports — shipped |
-| **0.6.2** | Agent-oriented fixtures for JSON/tool payloads; `summary()` report — shipped |
-| **0.6.3** | LangChain compress round-trip; `output_tokens` on cost stats / `summary()` — shipped |
-| **0.6.4** | OpenAI `tool_calls` / `role=tool` round-trip, JSON minify, budget pair integrity — shipped |
-| **0.6.5** | Minify JSON inside markdown code fences (`structure` stage) — shipped |
-| **0.6.6** | Protect tool/JSON payloads from recency, repetition, and resolution — shipped |
-| **0.6.7** | Anthropic `tool_use` / `tool_result` content blocks — shipped |
-| **0.6.8** | Gemini `functionCall` / `functionResponse` parts — shipped |
-| **0.6.9** | Internal refactor: jsonutil, clone_turn in stages — shipped. |
-| **0.6.14** | README + fidelity tables: current save vs fact-loss (medium ≠ high) — shipped. |
-| **0.6.13** | `medium` drops `trim` (keep on `high`); cache tradeoff helper — shipped. |
-| **0.6.12** | Polish: explicit `allow_equal_tokens` for contractions — shipped. |
-| **0.6.11** | Opt-in `contractions` / `wordy_phrases` (lexical dict reuse) + `number_normalize` — shipped. |
-| **0.6.10** | `trim` (medium/high); `lexical` / `abbrev` / `alias` + expanded filler on chat/agent `low` — shipped. |
+The 0.6 line is **stable for Tier 1**. Remaining work is **stabilization** (contracts, docs, release hygiene, fidelity reporting) — not a new 0.6.2-style feature plan.
+
+| Version | What shipped |
+|---------|----------------|
+| **0.6.0** | `structure` stage + `estimate_cost()` |
+| **0.6.1** | Estimated USD on `CompressionStats` / reports |
+| **0.6.2** | Agent-oriented fixtures; `summary()` report |
+| **0.6.3** | LangChain compress round-trip; `output_tokens` on cost stats |
+| **0.6.4** | OpenAI `tool_calls` / `role=tool` round-trip, JSON minify, budget pair integrity |
+| **0.6.5** | Minify JSON inside markdown code fences |
+| **0.6.6** | Protect tool/JSON payloads from recency, repetition, and resolution |
+| **0.6.7** | Anthropic `tool_use` / `tool_result` content blocks |
+| **0.6.8** | Gemini `functionCall` / `functionResponse` parts |
+| **0.6.9** | Internal refactor: jsonutil, clone_turn in stages |
+| **0.6.10** | `trim`; `lexical` / `abbrev` / `alias` + expanded filler on chat/agent `low` |
+| **0.6.11** | Opt-in `contractions` / `wordy_phrases` + `number_normalize` |
+| **0.6.12** | Explicit `allow_equal_tokens` for contractions |
+| **0.6.13** | `medium` drops `trim` (keep on `high`); `compare_cache_tradeoff()` |
+| **0.6.14** | Fidelity tables: save vs fact-loss (medium ≠ high) |
 
 Stay classical-NLP-first; keep optional LLM extras optional.

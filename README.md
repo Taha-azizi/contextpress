@@ -5,17 +5,69 @@ Created and maintained by **[Taha Azizi](https://github.com/Taha-azizi)**.
 
 **Write-up:** [Introducing contextpress](https://pub.towardsai.net/introducing-contextpress-the-python-library-that-refactors-your-llm-context-c57965617edb) — Towards AI (Medium)
 
+On the **`low`** preset, a 222-item local study measured about **6% fewer tokens** with about **99% of critical facts kept** (weighted: 6.0% token save, 98.4% factoids retained; mean retention 99.0%). No API key for Tier 1.
+
 ---
 
 ## Project Status
 
-> **Status: Stable for its original use case — maintained at a low cadence.**
+> **Status: Actively stabilizing.** **0.6.x is stable for Tier 1** (deterministic, offline NLP — no LLM required).
 >
-> - **Built for a specific use case and provided as-is.** I will review bug fixes when time permits, but I am **not actively developing new features**.
-> - **PRs are welcome**, but please expect a review cycle of **2–4 weeks**. If you need a feature immediately, **fork the repository** and iterate on your own timeline.
-> - **License:** [Apache 2.0](LICENSE) — no warranty, no liability. See §7 (Disclaimer of Warranty) and §8 (Limitation of Liability) of the license for the legal text.
+> - Tier 1 (`low` / `medium` / `high`) is the supported product surface. Behavior is covered by tests; numbers below are from the current fidelity corpus.
+> - Work in this series is tightening contracts, docs, and release hygiene — not a freeze, and not a rewrite.
+> - **PRs are welcome.** Please expect a review cycle of **2–4 weeks**. If you need a change immediately, **fork** and iterate on your own timeline.
+> - **License:** [Apache 2.0](LICENSE) — no warranty, no liability. See §7 and §8 of the license for the legal text.
 >
-> For bug reports, please open a [GitHub issue](https://github.com/Taha-azizi/contextpress/issues) with a minimal reproduction. Feature requests may be closed with a pointer to fork.
+> Bugs: open a [GitHub issue](https://github.com/Taha-azizi/contextpress/issues) with a minimal reproduction. Security: see [SECURITY.md](SECURITY.md).
+
+---
+
+## Headline results (0.6.14 study)
+
+Deterministic factoid check on **222** local workloads (no LLM judge). Quote **mean token save** and **weighted critical-fact retention**. Full tables: [`benchmarks/INFO_FIDELITY.md`](benchmarks/INFO_FIDELITY.md).
+
+| Preset | What runs | Tokens saved (mean) | Critical-fact loss | Facts kept |
+|--------|-----------|--------------------:|-------------------:|-----------:|
+| `low` | wording only | **6.0%** | **1.6%** | **98.4%** |
+| `medium` | low + recency | **22.7%** | **15.2%** | **84.8%** |
+| `high` | medium + trim + resolution | **47.7%** | **27.3%** | **72.7%** |
+
+By context type (`ContextManager(type=…)`):
+
+| Type | n | `low` save → fact loss | `medium` | `high` |
+|------|--:|------------------------|----------|--------|
+| **chat** | 202 | 5.9% → 1.6% | 23.5% → 22.6% | 50.8% → 45.0% |
+| **rag_doc** (files) | 7 | 13.1% → 0.0% | 33.4% → 14.5% | 33.8% → 17.3% |
+| **agent** (pretty tool JSON) | 5 | 11.3% → 2.7% | same (structure minify) | same |
+| **agent tools** (Glaive) | 8 | 0.2% → 0.0% | 1.1% → 0.0% | 5.7% → 4.4% |
+
+Typical chat (median fact loss): **0%** on `low`/`medium`, **33%** on `high`. Agents should stay on `low`; files get most of the win at `medium`; `high` is the long-chat lever.
+
+### Study summary and methodology
+
+- **Corpus:** 222 items × 3 presets (chats from public Hugging Face / GitHub-style threads, files stuffed into the prompt, agent tool JSON). Tier 1 only; no live LLM.
+- **Tokens:** tiktoken counts before vs after compression (`token_budget=None` so budget truncation is not counted as “savings”).
+- **Critical facts:** URLs, emails, paths, versions / decimals / 3+ digit numbers, ISO dates, `snake_case` / `CamelCase` ids from non-system turns. Retention uses token boundaries. **Weighted** loss pools facts across items (the headline); mean/median describe a typical item.
+- **Soft loss:** `100 × (1 − TF-IDF cosine)` of the full thread (wording / dropped hedges — not the same as lost IDs).
+- **Contracts:** system prompt unchanged; last-user keywords still present.
+- **Limits:** this is not an LLM-as-judge of answer quality. It answers: *are the hard facts still in the prompt?* Re-run: `python -m benchmarks.info_fidelity` (see [`benchmarks/README.md`](benchmarks/README.md)).
+
+---
+
+## When to use / when not to use
+
+**Use contextpress when**
+
+- Chat history, RAG chunks, or pretty-printed tool JSON is eating the window every call.
+- You want **deterministic**, offline, testable compression (Tier 1) before you pay for another model to summarize.
+- You can pick a preset: `low` for wording, `medium` if older turns can be shortened, `high` if mid-thread can be dropped.
+
+**Do not use it (or do not re-run it on the full prefix) when**
+
+- **Prompt caching** is already paying off. OpenAI / Anthropic / Gemini caches are **exact prefix matches**. Re-compressing the **whole** history can rewrite earlier turns, bust the cache, and cost **more** than the ~6% `low` token cut. Compress the **uncached tail**, or compact **once** and append. See [Prompt caching](#prompt-caching-openai--anthropic--gemini) and `compare_cache_tradeoff()`.
+- The thread is short (a two-line FAQ). Savings will be noise.
+- You need **verbatim** quotes, legal/audit wording, or tone that lexical/abbrev must not touch — skip wording stages or use `stages=["structure"]` only.
+- You need semantic “keep what the model would care about” — that is optional **Tier 2**, not Tier 1.
 
 ---
 
@@ -31,68 +83,52 @@ If you cloned this repository:
 pip install -e .
 ```
 
-## 30-second quickstart
+## Quickstart
+
+No API keys are required for Tier 1. Pass **`token_budget=None`** unless you want the **budget** stage to enforce a hard cap.
+
+**Sample before**
+
+> In order to utilize the API effectively, due to the fact that rate limits apply, we should implement caching for the application programming interface calls we make on a daily basis.
+
+**Sample after** (`low` preset — wording: structure, lexical, filler, abbrev, alias, repetition)
+
+> To use the API effectively, because rate limits apply, we should implement caching for the API calls we make daily.
 
 ```python
 from contextpress import ContextManager
 
-# Default compression is "medium" (includes recency); see below.
-cm = ContextManager(type="chat")
-messages = [{"role": "user", "content": "Hello!"}]
-compressed = cm.compress(messages, token_budget=2000)
+messages = [
+    {
+        "role": "user",
+        "content": (
+            "In order to utilize the API effectively, due to the fact that "
+            "rate limits apply, we should implement caching for the "
+            "application programming interface calls we make on a daily basis."
+        ),
+    }
+]
+
+cm = ContextManager(type="chat", compression="low")
+result = cm.compress(messages, token_budget=None, return_stats=True)
+print(result.messages[0]["content"])
+print(result.stats.token_savings_pct, result.stats.stages_run)
 ```
 
-No API keys are required for Tier 1. Passing **`token_budget`** turns on the **budget** stage; other stages follow the chosen **compression** preset (`low` / `medium` / `high`).
-
-Pass **`return_stats=True`** to get a `CompressionResult` with `messages` and compression stats (token counts, stages run, turn deltas):
+Default **`compression` is `"medium"`** (adds recency). Passing **`token_budget=<int>`** turns on **budget**.
 
 ```python
 result = cm.compress(messages, token_budget=2000, return_stats=True)
 print(result.stats.tokens_saved, result.stats.stages_run)
 compressed = result.messages
-```
 
-Check token count **before** compressing:
-
-```python
 before = cm.estimate_tokens(messages)
-```
-
-**Preview without changing messages** (0.4+):
-
-```python
 preview = cm.preview(messages, token_budget=500)
-print(preview.stats.tokens_saved, preview.stats.warnings_emitted)
 assert preview.messages == messages  # unchanged
 
-if cm.fits_budget(messages, 4000):
-    ...
-```
-
-**Compare presets** (0.5+):
-
-```python
 rows = cm.compare_presets(messages, token_budget=500)
-for preset, stats in rows.items():
-    print(preset, stats.tokens_saved, stats.token_savings_pct)
-```
-
-**Recommend a preset** (0.5.3+):
-
-```python
 preset = cm.recommend_preset(messages, token_budget=500)
-out = cm.compress(messages, token_budget=500, compression=preset)
-```
-
-**Batch compress** (0.5.4+):
-
-```python
 results = cm.compress_many(list_of_conversations, token_budget=2000, return_stats=True)
-```
-
-**Async** (0.5+):
-
-```python
 out = await cm.compress_async(messages, token_budget=2000)
 ```
 
@@ -111,40 +147,15 @@ cm.register_stage("my_stage", MyStage)
 out = cm.compress(messages, stages=["filler", "my_stage", "budget"], token_budget=500)
 ```
 
-### Minimal examples
-
-```python
-from contextpress import ContextManager
-
-# Shortest useful call (default compression=medium, budget on because token_budget set)
-out = ContextManager().compress(
-    [{"role": "user", "content": "Hello"}, {"role": "assistant", "content": "Hi!"}],
-    token_budget=500,
-)
-
-# Lighter pass: structure + lexical + filler + abbrev + alias + repetition (+ budget if set)
-out = ContextManager(compression="low").compress(messages, token_budget=500)
-
-# Full NLP pipeline for this call (+ budget if token_budget set)
-out = ContextManager().compress(messages, token_budget=500, compression="high")
-
-# Exact stages only (preset ignored); include "budget" if you pass token_budget and want enforcement
-out = ContextManager().compress(
-    messages,
-    token_budget=500,
-    stages=["filler", "repetition", "budget"],
-)
-```
-
 ### Runnable demo in this repo
 
-After `pip install -e .`, run:
+After `pip install -e .`:
 
 ```bash
 python try_compress.py
+python examples/quickstart_low.py
+python examples/low_abbrev_alias.py
 ```
-
-That script builds a long history and a tight `token_budget` so you can see turn and token counts drop (see comments at the top of `try_compress.py`).
 
 ## Context types
 
@@ -209,27 +220,6 @@ out = ContextManager().compress(
 est = cm.estimate_cost(messages, provider="openai", model="gpt-4o-mini", output_tokens=200)
 print(est.total_cost_usd, est.to_dict())
 ```
-
-## Measured savings vs critical-information loss (0.6.14)
-
-Deterministic factoid check on **222** local workloads (no LLM judge): URLs, versions, 3+ digit numbers, paths, identifiers. **Quote mean token save + weighted critical-fact loss.** `medium` is recency only; `high` adds trim. Full tables: [`benchmarks/INFO_FIDELITY.md`](benchmarks/INFO_FIDELITY.md).
-
-| Preset | What runs | Tokens saved (mean) | Critical-fact loss | Facts kept |
-|--------|-----------|--------------------:|-------------------:|-----------:|
-| `low` | wording only | **6.0%** | **1.6%** | **98.4%** |
-| `medium` | low + recency | **22.7%** | **15.2%** | **84.8%** |
-| `high` | medium + trim + resolution | **47.7%** | **27.3%** | **72.7%** |
-
-By context type (`ContextManager(type=…)`):
-
-| Type | n | `low` save → fact loss | `medium` | `high` |
-|------|--:|------------------------|----------|--------|
-| **chat** | 202 | 5.9% → 1.6% | 23.5% → 22.6% | 50.8% → 45.0% |
-| **rag_doc** (files) | 7 | 13.1% → 0.0% | 33.4% → 14.5% | 33.8% → 17.3% |
-| **agent** (pretty tool JSON) | 5 | 11.3% → 2.7% | same (structure minify) | same |
-| **agent tools** (Glaive) | 8 | 0.2% → 0.0% | 1.1% → 0.0% | 5.7% → 4.4% |
-
-Typical chat (median fact loss): **0%** on `low`/`medium`, **33%** on `high`. Agents should stay on `low`; files get most of the win at `medium`; `high` is the long-chat lever.
 
 ## Prompt caching (OpenAI / Anthropic / Gemini)
 
@@ -297,7 +287,7 @@ print(result.summary())
 LangChain-style message objects (``.type`` / ``.content``) round-trip through ``compress()``;
 dropped turns keep their original object types. See `examples/langchain_roundtrip.py`.
 
-See [`ROADMAP.md`](ROADMAP.md) for positioning vs heavier compression stacks and the 0.6.x plan.
+See [`ROADMAP.md`](ROADMAP.md) for positioning vs heavier compression stacks.
 
 ## Tier 1 vs Tier 2 (classical NLP vs LLM)
 
@@ -453,7 +443,7 @@ For academic use, cite this package in your paper’s software or methods sectio
 
 ## Extension and growth
 
-- **Stabilization audit** — See [`AUDIT.md`](AUDIT.md) for known contract gaps and the 0.5.5–0.5.8 backlog (refactors, fixtures, fixes).
+- **Stabilization** — See [`AUDIT.md`](AUDIT.md) for known contract gaps. See [`ROADMAP.md`](ROADMAP.md) for what already shipped in 0.6.x.
 - **Custom stages** — Subclass `contextpress.strategies.base.BaseStrategy` and plug in via a custom `Pipeline` subclass or future registry hooks.
 - **Tier 2** — Implement `LLMBackend` (`summarize`, `deduplicate`) for provider-specific semantic compression; failures fall back to Tier 1.
 - **Presets API** — `from contextpress.compression import VALID_STAGES, STAGE_ORDER` for tooling and experiments.

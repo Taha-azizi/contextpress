@@ -1,5 +1,7 @@
 # Savings study (local)
 
+**Current headline (222 items, 0.6.14):** `low` **6.0%** mean token save and **98.4%** weighted fact retention; `medium` **22.7% / 84.8%**; `high` **47.7% / 72.7%**. Details: [`INFO_FIDELITY.md`](INFO_FIDELITY.md).
+
 Tier-1 only (no LLM). Builds a gitignored corpus of **long chats** (many free
 HF sources — not only GitHub), **files in the prompt**, and **pretty tool JSON**,
 compresses at `low` / `medium` / `high`, records **per-stage token savings**,
