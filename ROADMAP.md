@@ -50,4 +50,12 @@ The 0.6 line is **stable for Tier 1**. Remaining work is **stabilization** (cont
 | **0.6.13** | `medium` drops `trim` (keep on `high`); `compare_cache_tradeoff()` |
 | **0.6.14** | Fidelity tables: save vs fact-loss (medium ≠ high) |
 
+## 0.7.x — performance and measurement
+
+Same Tier-1 behavior as 0.6.14. The series is faster calls and better timing, not new stages.
+
+| Version | Focus |
+|---------|--------|
+| **0.7.0** | Lexical unigram hash matcher; ``elapsed_ms`` / ``elapsed_ms_by_stage``; lazy NLTK/Sumy import |
+
 Stay classical-NLP-first; keep optional LLM extras optional.

@@ -2,7 +2,7 @@
 
 Versions are **[SemVer](https://semver.org/)**. The canonical changelog is [`CHANGELOG.md`](CHANGELOG.md). This file is the GitHub-style narrative for maintainers cutting tags.
 
-**Current package version:** `0.6.14`
+**Current package version:** `0.7.0`
 
 Sources that must match before a PyPI upload (CI runs `python scripts/check_version.py`):
 
@@ -16,6 +16,25 @@ Sources that must match before a PyPI upload (CI runs `python scripts/check_vers
 | PyPI | `pip index versions contextpress` |
 
 Do not retag `main`/`dev` from a machine that has not verified the table above.
+
+---
+
+## 0.7.0 — 2026-09-17
+
+### Why this release
+
+Profiling (not the earlier “recount tokens / reuse TF-IDF” guess) showed the **lexical** stage compiling ~20k unigrams into one regex (~200 ms per few-KB turn). `return_stats` vs not was a wash. Sumy LSA is real (~15–30 ms per summarized turn) but is not the `low` preset.
+
+### Changes
+
+- Lexical unigrams: word-boundary **hash lookup**. Multi-word dicts unchanged.
+- `CompressionStats.elapsed_ms` and `elapsed_ms_by_stage`.
+- NLTK bootstrap only when resolution runs; Sumy imported only when recency summarizes.
+- TF-IDF cosine via `linear_kernel` (L2-normalized, same scores).
+
+No new stages. Token-save / fact-retention tables from 0.6.14 still apply.
+
+Tag: `v0.7.0` (local until published)
 
 ---
 

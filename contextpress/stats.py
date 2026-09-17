@@ -33,8 +33,13 @@ def count_turn_tokens(turn: Turn, encoding: tiktoken.Encoding) -> int:
     return len(encoding.encode(f"{turn.role}\n{body}"))
 
 
-def count_conversation_tokens(conversation: Conversation, model: str | None) -> int:
-    enc = get_encoding(model)
+def count_conversation_tokens(
+    conversation: Conversation,
+    model: str | None,
+    *,
+    encoding: tiktoken.Encoding | None = None,
+) -> int:
+    enc = encoding if encoding is not None else get_encoding(model)
     return sum(count_turn_tokens(t, enc) for t in conversation.turns)
 
 
@@ -50,6 +55,8 @@ class CompressionStats:
     turn_delta_by_stage: dict[str, int] = field(default_factory=dict)
     # after - before tokens for each stage (negative means savings)
     token_delta_by_stage: dict[str, int] = field(default_factory=dict)
+    elapsed_ms: float | None = None
+    elapsed_ms_by_stage: dict[str, float] = field(default_factory=dict)
     llm_tier_applied: bool = False
     llm_dedup_turns_before: int = 0
     llm_dedup_turns_after: int = 0
@@ -139,6 +146,8 @@ class CompressionStats:
         ]
         if self.stages_run:
             lines.append(f"stages: {', '.join(self.stages_run)}")
+        if self.elapsed_ms is not None:
+            lines.append(f"elapsed: {self.elapsed_ms:.1f} ms")
         saved = self.estimated_cost_saved_usd
         before_usd = self.estimated_input_cost_before_usd
         after_usd = self.estimated_input_cost_after_usd
@@ -169,6 +178,8 @@ class CompressionStats:
             "stages_run": list(self.stages_run),
             "turn_delta_by_stage": dict(self.turn_delta_by_stage),
             "token_delta_by_stage": dict(self.token_delta_by_stage),
+            "elapsed_ms": self.elapsed_ms,
+            "elapsed_ms_by_stage": dict(self.elapsed_ms_by_stage),
             "llm_tier_applied": self.llm_tier_applied,
             "llm_dedup_turns_before": self.llm_dedup_turns_before,
             "llm_dedup_turns_after": self.llm_dedup_turns_after,

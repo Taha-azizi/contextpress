@@ -3,8 +3,7 @@ from __future__ import annotations
 import copy
 import re
 
-import nltk
-
+from contextpress._bootstrap import bootstrap_nltk
 from contextpress.models import Conversation, Turn, clone_conversation, clone_turn
 from contextpress.normalizer import extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
@@ -107,6 +106,9 @@ def _extract_subject_description(res_text: str) -> tuple[str, str]:
 
 def _noun_subject(text: str) -> str:
     try:
+        bootstrap_nltk()
+        import nltk
+
         tokens = nltk.word_tokenize(text)
         tagged = nltk.pos_tag(tokens)
         for w, tag in tagged:

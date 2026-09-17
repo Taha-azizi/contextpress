@@ -5,17 +5,21 @@ from __future__ import annotations
 from typing import Any
 
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.metrics.pairwise import linear_kernel
 
 
 def tfidf_cosine(a: str, b: str) -> float:
-    """Cosine similarity of two texts; ``0.0`` if vectors cannot be built."""
+    """Cosine similarity of two texts; ``0.0`` if vectors cannot be built.
+
+    ``TfidfVectorizer`` L2-normalizes rows, so cosine equals the sparse dot
+    product (``linear_kernel``) — same numbers as ``cosine_similarity``.
+    """
     if not a.strip() or not b.strip():
         return 0.0
     try:
         vec = TfidfVectorizer(min_df=1, max_df=1.0)
         mat = vec.fit_transform([a, b])
-        return float(cosine_similarity(mat[0:1], mat[1:2])[0, 0])
+        return float(linear_kernel(mat[0:1], mat[1:2])[0, 0])
     except ValueError:
         return 0.0
 
@@ -27,6 +31,6 @@ def tfidf_similarity_matrix(texts: list[str]) -> Any | None:
     try:
         vec = TfidfVectorizer(min_df=1, max_df=1.0)
         mat = vec.fit_transform(texts)
-        return cosine_similarity(mat)
+        return linear_kernel(mat)
     except ValueError:
         return None

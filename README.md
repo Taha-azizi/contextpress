@@ -133,6 +133,7 @@ Default **`compression` is `"medium"`** (adds recency). Passing **`token_budget=
 ```python
 result = cm.compress(messages, token_budget=2000, return_stats=True)
 print(result.stats.tokens_saved, result.stats.stages_run)
+print(result.stats.elapsed_ms, result.stats.elapsed_ms_by_stage)
 compressed = result.messages
 
 before = cm.estimate_tokens(messages)

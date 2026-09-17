@@ -2,11 +2,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from contextpress._bootstrap import bootstrap_nltk
 from contextpress.models import ContentBlock, Conversation, Turn
 from contextpress.stats import CompressionResult, CompressionStats
-
-bootstrap_nltk()
 
 __all__ = [
     "ContextManager",
@@ -16,7 +13,7 @@ __all__ = [
     "CompressionResult",
     "CompressionStats",
 ]
-__version__ = "0.6.14"
+__version__ = "0.7.0"
 
 
 def __getattr__(name: str) -> Any:
