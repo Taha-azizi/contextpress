@@ -1,0 +1,49 @@
+# Release notes
+
+Versions are **[SemVer](https://semver.org/)**. The canonical changelog is [`CHANGELOG.md`](CHANGELOG.md). This file is the GitHub-style narrative for maintainers cutting tags.
+
+**Current package version:** `0.6.14`
+
+Sources that must match before a PyPI upload (CI runs `python scripts/check_version.py`):
+
+| Source | Field |
+|--------|--------|
+| `pyproject.toml` | `[project] version` |
+| `contextpress/__init__.py` | `__version__` |
+| `CHANGELOG.md` | latest `## [x.y.z]` heading |
+| `CITATION.cff` | `version` |
+| git tag | `v{version}` on the release commit |
+| PyPI | `pip index versions contextpress` |
+
+Do not retag `main`/`dev` from a machine that has not verified the table above.
+
+---
+
+## 0.6.14 — 2026-09-16
+
+**Docs / measurement.** README and [`benchmarks/INFO_FIDELITY.md`](benchmarks/INFO_FIDELITY.md) publish the post-0.6.13 numbers: `medium` is recency (not trim). Overall: **low 6.0% save / 1.6% fact loss**; **medium 22.7% / 15.2%**; **high 47.7% / 27.3%**, plus chat / rag_doc / agent splits.
+
+Tag: `v0.6.14` · PyPI: `contextpress==0.6.14`
+
+---
+
+## 0.6.13 — 2026-09-14
+
+### Why this release
+
+`trim` on **medium** was collapsing the middle of long chats, so “medium” looked like “high” on token save **and** fact loss (~48% tokens / ~27% facts). That was the wrong default for people who wanted recency without deleting mid-thread turns.
+
+### Changes
+
+- **`medium` no longer runs `trim`.** Preset is wording stages + **recency**. Opening turns and the last three non-system turns stay; older leftover turns may still be shortened.
+- **`trim` stays on `high`**, or via `stages=["trim", ...]`.
+- **Prompt caching:** re-compressing a full history can bust exact-prefix caches and raise cost. Added `compare_cache_tradeoff()` to compare cached-raw vs compressed-uncached effective input tokens.
+- README documents cache-safe patterns (compress the tail, compact once then append).
+
+### Upgrade notes
+
+- If you depended on medium dropping the middle of the thread, pass `compression="high"` or include `"trim"` in `stages=`.
+- `low` is unchanged (wording only).
+- After this release, do not quote the old “medium ≈ 47% tokens” figure; use the 0.6.14 fidelity tables.
+
+Tag: `v0.6.13` · PyPI: `contextpress==0.6.13`

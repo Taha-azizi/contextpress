@@ -1,6 +1,8 @@
 # Contributing to contextpress
 
-Thank you for your interest in contributing. This project is maintained by [Taha Azizi](https://github.com/Taha-azizi) at a **low cadence**. Bug fixes are welcome; large feature work may be better suited to a fork if you need it quickly.
+Thank you for your interest in contributing. This project is **actively stabilizing**; **0.6.x is stable for Tier 1**. Bug fixes and contract/docs work are welcome; large new surfaces may be better suited to a fork if you need them quickly.
+
+Please follow the [Code of Conduct](CODE_OF_CONDUCT.md). Security reports: [SECURITY.md](SECURITY.md).
 
 ## Before you start
 
@@ -54,7 +56,7 @@ Open a [GitHub issue](https://github.com/Taha-azizi/contextpress/issues) with:
 
 ## Feature requests
 
-Feature requests may be accepted, deferred, or closed with a suggestion to fork. That is not a rejection of the idea — it reflects limited maintenance bandwidth.
+Feature requests may be accepted, deferred, or closed with a suggestion to fork. That is not a rejection of the idea — it reflects a focus on stabilizing Tier 1 rather than expanding scope.
 
 ## License
 

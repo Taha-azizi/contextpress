@@ -33,9 +33,11 @@ Thumbs.db
 # Secrets (never commit)
 .env
 
-# Draft articles / writing prompts (local only)
-articles/STYLE_PROMPT_taha_azizi.md
-articles/introducing-contextpress.md
+# Local writing / scratch (not shipped)
+articles/
+notes/
+scratch/
+*.local.md
 
 # Savings-study downloads (licenses allow local measurement; not for republish)
 benchmarks/data/

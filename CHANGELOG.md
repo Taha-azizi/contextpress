@@ -4,6 +4,12 @@ All notable changes to `contextpress` are recorded here.
 The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/)
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
+
+## [Unreleased]
+
+- **Docs / community** — project status is actively stabilizing; 0.6.x called out as stable for Tier 1. README headline fidelity numbers, methodology, realistic `low` example, when-to-use (incl. prompt caching). ROADMAP is a shipped 0.6.x table (no leftover 0.6.2 plan). Added `SECURITY.md`, `CODE_OF_CONDUCT.md`, GitHub issue/PR templates. `scripts/check_version.py` keeps pyproject, `__version__`, CHANGELOG, and CITATION.cff in sync.
+
 ## [0.6.14] - 2026-09-16
 
 - **Docs** — README and fidelity report publish current measured token-save vs

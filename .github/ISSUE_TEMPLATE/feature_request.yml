@@ -1,0 +1,34 @@
+name: Feature request
+description: Suggest an improvement (PRs target the `dev` branch)
+title: "[Feature] "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        0.6.x is **stable for Tier 1**. Requests that need a new LLM, proxy, or non-deterministic judge are likely out of scope — see ROADMAP.md.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is hard or expensive today without this change?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposal
+      description: How should it work? Prefer a stage, a preset, or a stats field over a new product surface.
+    validations:
+      required: true
+  - type: dropdown
+    id: tier
+    attributes:
+      label: Tier
+      options:
+        - Tier 1 (deterministic, no API key)
+        - Tier 2 (optional LLM)
+        - Docs / tooling
+        - Unsure
+    validations:
+      required: true

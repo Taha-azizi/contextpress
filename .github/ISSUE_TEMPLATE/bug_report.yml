@@ -1,0 +1,49 @@
+name: Bug report
+description: Something in Tier 1 or the public API does not match documented behavior
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report a bug. For security issues, use [SECURITY.md](../SECURITY.md) instead of this form.
+  - type: input
+    id: version
+    attributes:
+      label: contextpress version
+      description: Output of `pip show contextpress` or `import contextpress; print(contextpress.__version__)`
+      placeholder: "0.6.14"
+    validations:
+      required: true
+  - type: input
+    id: python
+    attributes:
+      label: Python version
+      placeholder: "3.12"
+    validations:
+      required: true
+  - type: dropdown
+    id: os
+    attributes:
+      label: OS
+      options:
+        - Windows
+        - macOS
+        - Linux
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Minimal reproduction
+      description: Smallest `ContextManager.compress(...)` snippet that shows the bug. Redact secrets.
+      render: python
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true

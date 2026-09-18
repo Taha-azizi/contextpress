@@ -2,7 +2,9 @@
 
 Contextpress is for **long chats, files stuffed into the prompt, and pretty-printed tool JSON** — the work that repeats on every API call. It is not for a two-line FAQ. Those jobs are out of this report.
 
-On **206 in-scope workloads**, `medium` cut about **23% of input tokens**. `low` (minify JSON, lexical word swaps, drop filler) cut about **2%** overall, and about **11%** on pretty tool JSON.
+Headline (full **222**-item fidelity corpus, not the in-scope filter below): **`low` ~6.0% tokens / ~1.6% critical-fact loss (~98.4% facts kept)**; **`medium` ~22.7% / ~15.2%**; **`high` ~47.7% / ~27.3%**. See [`INFO_FIDELITY.md`](INFO_FIDELITY.md).
+
+On **206 in-scope workloads** (marketing filter: skip tiny FAQ-like jobs), `medium` still cuts about **23% of input tokens**. `low` is about **6% mean** on the full corpus (in-scope **median** stays low because many chats barely change). Pretty tool JSON is still ~**11%** at `low` from structure minify.
 
 ## What that is worth in a real month
 
@@ -30,7 +32,7 @@ We did not A/B the model's final reply. Risk is what the pipeline is **allowed t
 
 | preset | input cut (in-scope median) | risk to the final answer |
 | --- | --- | --- |
-| `low` | ~2% | **Low.** Does not drop turns. Lexical may change wording (utilize → use); filler strips empty hedges. Skip on tone-sensitive or quote-verbatim threads. |
+| `low` | ~6% mean (full corpus) | **Low.** Does not drop turns. Lexical may change wording (utilize → use); filler strips empty hedges. Skip on tone-sensitive or quote-verbatim threads. |
 | `medium` | ~23% | **Low–medium.** Does not drop mid-thread turns. Older leftover turns may be extractively shortened (recency). Fine for 'continue this work'. Not for audits that need every old number verbatim. |
 | `high` | ~53% | **Medium.** Trim drops the middle; finished threads can collapse to a stub. Use when old resolved topics should leave the window. |
 
