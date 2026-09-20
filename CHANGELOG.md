@@ -6,9 +6,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
 
-## [Unreleased]
+## [0.7.0] - 2026-09-17
 
-- **Docs / community** — project status is actively stabilizing; 0.6.x called out as stable for Tier 1. README headline fidelity numbers, methodology, realistic `low` example, when-to-use (incl. prompt caching). ROADMAP is a shipped 0.6.x table (no leftover 0.6.2 plan). Added `SECURITY.md`, `CODE_OF_CONDUCT.md`, GitHub issue/PR templates. `scripts/check_version.py` keeps pyproject, `__version__`, CHANGELOG, and CITATION.cff in sync.
+- **Performance** — lexical unigrams (~20k) use a hash lookup instead of one giant
+  regex (the measured hot path: ~200 ms per few-KB turn). Multi-word dicts
+  (contractions, wordy phrases) still use a small regex. NLTK download/bootstrap
+  runs only when ``resolution`` needs it; Sumy imports only when recency
+  summarizes.
+- **Stats** — ``CompressionStats.elapsed_ms`` and ``elapsed_ms_by_stage``
+  (also in ``to_dict()`` / ``summary()``). Per-stage token deltas reuse one
+  tiktoken encoding and one running count.
+- **Docs** — README / PyPI page: 0.7.0 status, absolute GitHub links (relative
+  paths 404 on PyPI), author metadata.
 
 ## [0.6.14] - 2026-09-16
 

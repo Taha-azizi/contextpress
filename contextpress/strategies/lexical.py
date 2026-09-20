@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from dataclasses import dataclass
 from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
@@ -26,6 +27,8 @@ _ENCODING_NAME_RE = re.compile(r"^[a-z0-9_]+$")
 _DICT_NAME_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 _SUPPORTED_ENCODINGS = ("cl100k_base", "o200k_base")
 _KNOWN_DICTS = ("lexical", "contractions", "wordy_phrases")
+_UNIGRAM = re.compile(r"\b\w+\b")
+_NON_WORD = re.compile(r"\W", re.UNICODE)
 
 
 def _dict_filename(dict_name: str, encoding_name: str) -> str:
@@ -82,28 +85,72 @@ def compile_mapping_pattern(mapping: dict[str, str]) -> re.Pattern[str] | None:
     return re.compile(rf"\b(?:{body})\b", re.IGNORECASE)
 
 
+@dataclass(frozen=True)
+class RewritePlan:
+    """Split a rewrite dict so unigrams are O(1) lookups, not a giant regex.
+
+    The bundled lexical dictionaries are ~20k single words. Compiling them into
+    one alternation is the dominant Tier-1 cost (~200 ms / few-KB turn).
+    Multi-word keys (contractions, wordy phrases) still use a small regex.
+    """
+
+    unigrams: dict[str, str]
+    ngrams: dict[str, str]
+    ngram_pattern: re.Pattern[str] | None
+
+
+def build_rewrite_plan(mapping: dict[str, str]) -> RewritePlan:
+    unigrams: dict[str, str] = {}
+    ngrams: dict[str, str] = {}
+    for key, value in mapping.items():
+        if _NON_WORD.search(key):
+            ngrams[key] = value
+        else:
+            unigrams[key] = value
+    return RewritePlan(
+        unigrams=unigrams,
+        ngrams=ngrams,
+        ngram_pattern=compile_mapping_pattern(ngrams),
+    )
+
+
+def _sub_mapping(match: re.Match[str], mapping: dict[str, str]) -> str:
+    surface = match.group(0)
+    repl = mapping.get(surface.lower())
+    if repl is None:
+        return surface
+    return preserve_case(surface, repl)
+
+
+def apply_rewrite_plan(text: str, plan: RewritePlan) -> str:
+    new_text = text
+    if plan.ngram_pattern is not None:
+        new_text = plan.ngram_pattern.sub(lambda m: _sub_mapping(m, plan.ngrams), new_text)
+    if plan.unigrams:
+
+        def _uni(match: re.Match[str]) -> str:
+            return _sub_mapping(match, plan.unigrams)
+
+        new_text = _UNIGRAM.sub(_uni, new_text)
+    return new_text
+
+
 def apply_lexical_text(
     text: str,
     mapping: dict[str, str],
     *,
     encoding=None,
     pattern: re.Pattern[str] | None = None,
+    plan: RewritePlan | None = None,
     allow_equal_tokens: bool = False,
 ) -> str:
     if not text or not mapping:
         return text
-    compiled = pattern if pattern is not None else compile_mapping_pattern(mapping)
-    if compiled is None:
-        return text
-
-    def _repl(match: re.Match[str]) -> str:
-        surface = match.group(0)
-        repl = mapping.get(surface.lower())
-        if repl is None:
-            return surface
-        return preserve_case(surface, repl)
-
-    new_text = compiled.sub(_repl, text)
+    if pattern is not None:
+        new_text = pattern.sub(lambda m: _sub_mapping(m, mapping), text)
+    else:
+        compiled = plan if plan is not None else build_rewrite_plan(mapping)
+        new_text = apply_rewrite_plan(text, compiled)
     return keep_if_fewer_tokens(text, new_text, encoding, allow_equal=allow_equal_tokens)
 
 
@@ -137,7 +184,7 @@ class LexicalCompression(BaseStrategy):
             self._mapping = load_dict_path(self.dict_path)
         else:
             self._mapping = load_rewrite_dict(dict_name, encoding_name)
-        self._pattern = compile_mapping_pattern(self._mapping)
+        self._plan = build_rewrite_plan(self._mapping)
         self._encoding = get_encoding(encoding_name)
 
     def process(self, conversation: Conversation) -> Conversation:
@@ -147,7 +194,7 @@ class LexicalCompression(BaseStrategy):
                 text,
                 self._mapping,
                 encoding=self._encoding,
-                pattern=self._pattern,
+                plan=self._plan,
                 allow_equal_tokens=self._allow_equal_tokens,
             ),
         )

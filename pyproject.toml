@@ -4,10 +4,11 @@ build-backend = "hatchling.build"
 
 [project]
 name = "contextpress"
-version = "0.6.14"
+version = "0.7.0"
 description = "Deterministic context compression for LLM chat, RAG, and agent pipelines"
 readme = "README.md"
 license = { file = "LICENSE" }
+authors = [{ name = "Taha Azizi" }]
 requires-python = ">=3.10"
 keywords = [
     "llm",
@@ -48,10 +49,11 @@ llm = ["openai>=1.0", "anthropic>=0.18", "ollama>=0.3.0", "google-generativeai>=
 
 [project.urls]
 Homepage = "https://github.com/Taha-azizi/contextpress"
+Repository = "https://github.com/Taha-azizi/contextpress"
 Documentation = "https://github.com/Taha-azizi/contextpress#readme"
 PyPI = "https://pypi.org/project/contextpress/"
 Issues = "https://github.com/Taha-azizi/contextpress/issues"
-Changelog = "https://github.com/Taha-azizi/contextpress/blob/main/CHANGELOG.md"
+Changelog = "https://github.com/Taha-azizi/contextpress/blob/dev/CHANGELOG.md"
 
 [tool.hatch.build.targets.wheel]
 packages = ["contextpress"]

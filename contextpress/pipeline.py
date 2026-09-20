@@ -32,6 +32,7 @@ CONTEXTPRESS BEHAVIOR CONTRACT
 from __future__ import annotations
 
 import copy
+import time
 import warnings
 from typing import TYPE_CHECKING, Any
 
@@ -101,15 +102,18 @@ class Pipeline:
         *,
         dry_run: bool = False,
     ) -> Conversation:
+        enc = get_encoding(self.model)
         if stats is not None:
             stats.turns_before = len(conversation.turns)
-            stats.tokens_before = count_conversation_tokens(conversation, self.model)
+            stats.tokens_before = count_conversation_tokens(conversation, self.model, encoding=enc)
             stats.context_type = conversation.type
             stats.token_budget = self.token_budget
             stats.dry_run = dry_run
 
         result = clone_conversation(conversation)
         stage_order = effective_stage_order()
+        running_tokens = stats.tokens_before if stats is not None else 0
+        t_run = time.perf_counter()
         for stage_name in stage_order:
             if stage_name == "budget" and self.token_budget is None:
                 continue
@@ -117,26 +121,32 @@ class Pipeline:
             if stage_config is None or not stage_config.enabled:
                 continue
             before_turns = len(result.turns)
-            before_tokens = (
-                count_conversation_tokens(result, self.model) if stats is not None else 0
-            )
+            t_stage = time.perf_counter()
             strategy = self._build_strategy(stage_name, stage_config)
             result = strategy.process(result)
             if stats is not None:
                 stats.stages_run.append(stage_name)
+                stats.elapsed_ms_by_stage[stage_name] = round(
+                    (time.perf_counter() - t_stage) * 1000.0, 3
+                )
                 turn_delta = len(result.turns) - before_turns
                 if turn_delta != 0:
                     stats.turn_delta_by_stage[stage_name] = turn_delta
-                token_delta = count_conversation_tokens(result, self.model) - before_tokens
+                after_tokens = count_conversation_tokens(result, self.model, encoding=enc)
+                token_delta = after_tokens - running_tokens
                 if token_delta != 0:
                     stats.token_delta_by_stage[stage_name] = token_delta
+                running_tokens = after_tokens
 
         if self.llm_backend is not None and not dry_run:
             result = self._run_llm_tier(result, stats=stats)
 
         if stats is not None:
             stats.turns_after = len(result.turns)
-            stats.tokens_after = count_conversation_tokens(result, self.model)
+            stats.tokens_after = running_tokens
+            if self.llm_backend is not None and not dry_run:
+                stats.tokens_after = count_conversation_tokens(result, self.model, encoding=enc)
+            stats.elapsed_ms = round((time.perf_counter() - t_run) * 1000.0, 3)
 
         return result
 

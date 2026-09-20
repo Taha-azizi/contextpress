@@ -2,14 +2,15 @@
 
 [![PyPI version](https://img.shields.io/pypi/v/contextpress)](https://pypi.org/project/contextpress/)
 [![Python versions](https://img.shields.io/pypi/pyversions/contextpress)](https://pypi.org/project/contextpress/)
-[![License](https://img.shields.io/github/license/Taha-azizi/contextpress)](LICENSE)
+[![License](https://img.shields.io/github/license/Taha-azizi/contextpress)](https://github.com/Taha-azizi/contextpress/blob/dev/LICENSE)
 [![PyPI downloads](https://img.shields.io/pypi/dm/contextpress)](https://pypi.org/project/contextpress/)
 
 **Deterministic context compression for LLM chat, RAG, and agent pipelines** — trim token bloat before every model call.
 
 - **Tier 1, no API key** — `ContextManager` runs deterministic NLP stages (structure, filler, repetition, recency, budget, …). Optional **Tier 2** via `llm_backend=` when you want semantic dedupe/summarize.
 - **`chat` · `rag_doc` · `agent`** — profiles tune filler, resolution, recency, and tool-turn handling for dialogue, RAG chunks, and agent threads.
-- **Measured tradeoffs** — **222** local workloads ([method](benchmarks/INFO_FIDELITY.md)): `low` **6.0%** token save / **1.6%** critical-fact loss; `medium` **22.7%** / **15.2%**; `high` **47.7%** / **27.3%** (weighted critical loss).
+- **Measured tradeoffs** — **222** local workloads ([method](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/INFO_FIDELITY.md)): `low` **6.0%** token save / **1.6%** critical-fact loss; `medium` **22.7%** / **15.2%**; `high` **47.7%** / **27.3%** (weighted critical loss).
+- **0.7.0 is faster, same compression** — lexical unigrams use a hash lookup instead of a 20k-word regex; `CompressionStats.elapsed_ms` reports wall time.
 
 Created and maintained by **[Taha Azizi](https://github.com/Taha-azizi)**. **Write-up:** [Introducing contextpress](https://pub.towardsai.net/introducing-contextpress-the-python-library-that-refactors-your-llm-context-c57965617edb) (Towards AI).
 
@@ -49,7 +50,7 @@ Pass **`return_stats=True`** for `CompressionResult` (`messages`, token counts, 
 
 ## Fidelity tradeoffs (0.6.14 study)
 
-Deterministic factoid check on **222** local workloads (no LLM judge). Quote **mean token save** and **weighted critical-fact retention**. Full tables: [`benchmarks/INFO_FIDELITY.md`](benchmarks/INFO_FIDELITY.md).
+Deterministic factoid check on **222** local workloads (no LLM judge). Quote **mean token save** and **weighted critical-fact retention**. Full tables: [`benchmarks/INFO_FIDELITY.md`](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/INFO_FIDELITY.md).
 
 | Preset | What runs | Tokens saved (mean) | Critical-fact loss | Facts kept |
 |--------|-----------|--------------------:|-------------------:|-----------:|
@@ -75,7 +76,7 @@ Typical chat (median fact loss): **0%** on `low`/`medium`, **33%** on `high`. Ag
 - **Critical facts:** URLs, emails, paths, versions / decimals / 3+ digit numbers, ISO dates, `snake_case` / `CamelCase` ids from non-system turns. Retention uses token boundaries. **Weighted** loss pools facts across items (the headline); mean/median describe a typical item.
 - **Soft loss:** `100 × (1 − TF-IDF cosine)` of the full thread (wording / dropped hedges — not the same as lost IDs).
 - **Contracts:** system prompt unchanged; last-user keywords still present.
-- **Limits:** this is not an LLM-as-judge of answer quality. It answers: *are the hard facts still in the prompt?* Re-run: `python -m benchmarks.info_fidelity` (see [`benchmarks/README.md`](benchmarks/README.md)).
+- **Limits:** this is not an LLM-as-judge of answer quality. It answers: *are the hard facts still in the prompt?* Re-run: `python -m benchmarks.info_fidelity` (see [`benchmarks/README.md`](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/README.md)).
 
 ---
 
@@ -93,6 +94,10 @@ Typical chat (median fact loss): **0%** on `low`/`medium`, **33%** on `high`. Ag
 - The thread is short (a two-line FAQ). Savings will be noise.
 - You need **verbatim** quotes, legal/audit wording, or tone that lexical/abbrev must not touch — skip wording stages or use `stages=["structure"]` only.
 - You need semantic “keep what the model would care about” — that is optional **Tier 2**, not Tier 1.
+
+### Decision models / Jev
+
+Input-metered **decision APIs** (for example [TypeSafe Jev](https://github.com/typesafe-ai/jev)) charge for the serialized conversation state you send on each call, not just the latest user turn. Compressing that state with contextpress **before** the request cuts billed tokens while keeping facts and tool results in a deterministic, testable form. Use `type="agent"` and a conservative preset such as `low` when you must not drop tool context; set `token_budget` when the API enforces a hard cap. See [`examples/jev_state_compression.py`](examples/jev_state_compression.py), the [Jev + contextpress gist](https://gist.github.com/Taha-azizi/57daeca5ecde9bbb1292cf13a9067ba2), and [discussion #4](https://github.com/Taha-azizi/contextpress/discussions/4).
 
 ---
 
@@ -133,6 +138,7 @@ Default **`compression` is `"medium"`** (adds recency). Passing **`token_budget=
 ```python
 result = cm.compress(messages, token_budget=2000, return_stats=True)
 print(result.stats.tokens_saved, result.stats.stages_run)
+print(result.stats.elapsed_ms, result.stats.elapsed_ms_by_stage)
 compressed = result.messages
 
 before = cm.estimate_tokens(messages)
@@ -168,6 +174,7 @@ After `pip install -e .`:
 python try_compress.py
 python examples/quickstart_low.py
 python examples/low_abbrev_alias.py
+python examples/jev_state_compression.py
 ```
 
 ## Context types
@@ -182,11 +189,11 @@ ContextManager(type="rag_doc")
 ContextManager(type="agent")
 ```
 
-Runnable agent example: [`examples/agent_pipeline.py`](examples/agent_pipeline.py).
-OpenAI tools example: [`examples/openai_tools_compress.py`](examples/openai_tools_compress.py).
-Anthropic tools example: [`examples/anthropic_tools_compress.py`](examples/anthropic_tools_compress.py).
-Gemini tools example: [`examples/gemini_tools_compress.py`](examples/gemini_tools_compress.py).
-Low-preset wording stages: [`examples/low_abbrev_alias.py`](examples/low_abbrev_alias.py).
+Runnable agent example: [`examples/agent_pipeline.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/agent_pipeline.py).
+OpenAI tools example: [`examples/openai_tools_compress.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/openai_tools_compress.py).
+Anthropic tools example: [`examples/anthropic_tools_compress.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/anthropic_tools_compress.py).
+Gemini tools example: [`examples/gemini_tools_compress.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/gemini_tools_compress.py).
+Low-preset wording stages: [`examples/low_abbrev_alias.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/low_abbrev_alias.py).
 
 ## Pipeline stages
 
@@ -202,7 +209,7 @@ out = ContextManager().compress(
 )
 ```
 
-Runnable demo: [`examples/low_abbrev_alias.py`](examples/low_abbrev_alias.py).
+Runnable demo: [`examples/low_abbrev_alias.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/low_abbrev_alias.py).
 
 Opt-in (0.6.11+, **not** in low/medium/high):
 
@@ -298,9 +305,9 @@ print(result.summary())
 ```
 
 LangChain-style message objects (``.type`` / ``.content``) round-trip through ``compress()``;
-dropped turns keep their original object types. See `examples/langchain_roundtrip.py`.
+dropped turns keep their original object types. See [`examples/langchain_roundtrip.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/langchain_roundtrip.py).
 
-See [`ROADMAP.md`](ROADMAP.md) for positioning vs heavier compression stacks.
+See [`ROADMAP.md`](https://github.com/Taha-azizi/contextpress/blob/dev/ROADMAP.md) for positioning vs heavier compression stacks.
 
 ## Tier 1 vs Tier 2 (classical NLP vs LLM)
 
@@ -382,7 +389,7 @@ cm = ContextManager(
 out = cm.compress(messages, token_budget=4000)
 ```
 
-**Runnable example** (requires `OPENAI_API_KEY`): [`examples/llm_tier_openai.py`](examples/llm_tier_openai.py).
+**Runnable example** (requires `OPENAI_API_KEY`): [`examples/llm_tier_openai.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/llm_tier_openai.py).
 
 ```bash
 pip install openai
@@ -401,7 +408,7 @@ cm = ContextManager(type="chat", llm_backend=backend, llm_min_input_chars=500)
 out = cm.compress(messages, token_budget=4000)
 ```
 
-Runnable script: [`examples/llm_tier_ollama.py`](examples/llm_tier_ollama.py).
+Runnable script: [`examples/llm_tier_ollama.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/llm_tier_ollama.py).
 
 **Claude (Anthropic)** — `pip install anthropic`, set `ANTHROPIC_API_KEY`:
 
@@ -414,7 +421,7 @@ cm = ContextManager(type="chat", llm_backend=backend, llm_min_input_chars=500)
 out = cm.compress(messages, token_budget=4000)
 ```
 
-Runnable script: [`examples/llm_tier_claude.py`](examples/llm_tier_claude.py).
+Runnable script: [`examples/llm_tier_claude.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/llm_tier_claude.py).
 
 **Gemini (Google)** — `pip install google-generativeai`, set `GOOGLE_API_KEY`:
 
@@ -427,7 +434,7 @@ cm = ContextManager(type="chat", llm_backend=backend, llm_min_input_chars=500)
 out = cm.compress(messages, token_budget=4000)
 ```
 
-Runnable script: [`examples/llm_tier_gemini.py`](examples/llm_tier_gemini.py).
+Runnable script: [`examples/llm_tier_gemini.py`](https://github.com/Taha-azizi/contextpress/blob/dev/examples/llm_tier_gemini.py).
 
 ```bash
 pip install ollama
@@ -445,13 +452,14 @@ Long chat histories inflate token usage, bury important facts (lost-in-the-middl
 
 ## Project status
 
-> **Stable for its original use case — maintained at a low cadence.** Tier 1 (`low` / `medium` / `high`) is deterministic, offline, and covered by tests; fidelity numbers above come from the current corpus.
+> **Actively stabilizing.** **0.6.x and 0.7.x are stable for Tier 1** (deterministic, offline NLP — no LLM required). Current release: **0.7.0** (speed; same save/fact numbers as 0.6.14).
 >
-> - **Provided as-is for its original use case.** Bug fixes are reviewed when time permits; **new features are not actively developed** (docs and contract fixes still land in 0.6.x).
+> - Tier 1 (`low` / `medium` / `high`) is the supported product surface. Behavior is covered by tests; numbers above come from the current fidelity corpus.
+> - **0.7.x** is performance and measurement (`elapsed_ms` on stats), not new compression stages.
 > - **PRs are welcome**, but expect a review cycle of **2–4 weeks**. Need something sooner? **Fork** and iterate on your timeline.
-> - **License:** [Apache 2.0](LICENSE) — no warranty, no liability. See §7 and §8 of the license for the legal text.
+> - **License:** [Apache 2.0](https://github.com/Taha-azizi/contextpress/blob/dev/LICENSE) — no warranty, no liability. See §7 and §8 of the license for the legal text.
 >
-> Bugs: [GitHub issues](https://github.com/Taha-azizi/contextpress/issues) with a minimal reproduction. Security: [SECURITY.md](SECURITY.md). Feature requests may be closed with a pointer to fork.
+> Bugs: [GitHub issues](https://github.com/Taha-azizi/contextpress/issues) with a minimal reproduction. Security: [SECURITY.md](https://github.com/Taha-azizi/contextpress/blob/dev/SECURITY.md). Feature requests may be closed with a pointer to fork.
 
 ## Dependencies
 
@@ -462,11 +470,11 @@ Long chat histories inflate token usage, bury important facts (lost-in-the-middl
 
 ## Research and citing
 
-For academic use, cite this package in your paper’s software or methods section. A machine-readable citation file is provided as [`CITATION.cff`](CITATION.cff).
+For academic use, cite this package in your paper’s software or methods section. A machine-readable citation file is provided as [`CITATION.cff`](https://github.com/Taha-azizi/contextpress/blob/dev/CITATION.cff).
 
 ## Extension and growth
 
-- **Stabilization** — See [`AUDIT.md`](AUDIT.md) for known contract gaps. See [`ROADMAP.md`](ROADMAP.md) for what already shipped in 0.6.x.
+- **Stabilization** — See [`AUDIT.md`](https://github.com/Taha-azizi/contextpress/blob/dev/AUDIT.md) for known contract gaps. See [`ROADMAP.md`](https://github.com/Taha-azizi/contextpress/blob/dev/ROADMAP.md) for what already shipped in 0.6.x and 0.7.0.
 - **Custom stages** — Subclass `contextpress.strategies.base.BaseStrategy` and plug in via a custom `Pipeline` subclass or future registry hooks.
 - **Tier 2** — Implement `LLMBackend` (`summarize`, `deduplicate`) for provider-specific semantic compression; failures fall back to Tier 1.
 - **Presets API** — `from contextpress.compression import VALID_STAGES, STAGE_ORDER` for tooling and experiments.

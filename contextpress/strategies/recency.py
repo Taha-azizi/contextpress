@@ -3,10 +3,6 @@ from __future__ import annotations
 import copy
 import re
 
-from sumy.nlp.tokenizers import Tokenizer
-from sumy.parsers.plaintext import PlaintextParser
-from sumy.summarizers.lsa import LsaSummarizer
-
 from contextpress.models import Conversation, Turn, clone_conversation, clone_turn
 from contextpress.normalizer import apply_text_to_turn, extract_text_for_processing
 from contextpress.strategies.base import BaseStrategy
@@ -44,6 +40,10 @@ def _summarize_text(text: str, sentence_count: int) -> str:
     if sentence_count <= 0:
         return text
     try:
+        from sumy.nlp.tokenizers import Tokenizer
+        from sumy.parsers.plaintext import PlaintextParser
+        from sumy.summarizers.lsa import LsaSummarizer
+
         parser = PlaintextParser.from_string(text, Tokenizer("english"))
         summarizer = LsaSummarizer()
         sents = summarizer(parser.document, sentence_count)
