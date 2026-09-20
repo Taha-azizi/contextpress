@@ -95,6 +95,10 @@ Typical chat (median fact loss): **0%** on `low`/`medium`, **33%** on `high`. Ag
 - You need **verbatim** quotes, legal/audit wording, or tone that lexical/abbrev must not touch — skip wording stages or use `stages=["structure"]` only.
 - You need semantic “keep what the model would care about” — that is optional **Tier 2**, not Tier 1.
 
+### Decision models / Jev
+
+Input-metered **decision APIs** (for example [TypeSafe Jev](https://github.com/typesafe-ai/jev)) charge for the serialized conversation state you send on each call, not just the latest user turn. Compressing that state with contextpress **before** the request cuts billed tokens while keeping facts and tool results in a deterministic, testable form. Use `type="agent"` and a conservative preset such as `low` when you must not drop tool context; set `token_budget` when the API enforces a hard cap. See [`examples/jev_state_compression.py`](examples/jev_state_compression.py), the [Jev + contextpress gist](https://gist.github.com/Taha-azizi/57daeca5ecde9bbb1292cf13a9067ba2), and [discussion #4](https://github.com/Taha-azizi/contextpress/discussions/4).
+
 ---
 
 ## Quickstart
@@ -170,6 +174,7 @@ After `pip install -e .`:
 python try_compress.py
 python examples/quickstart_low.py
 python examples/low_abbrev_alias.py
+python examples/jev_state_compression.py
 ```
 
 ## Context types
