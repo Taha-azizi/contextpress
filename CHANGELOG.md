@@ -16,8 +16,8 @@ Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
 - **Stats** — ``CompressionStats.elapsed_ms`` and ``elapsed_ms_by_stage``
   (also in ``to_dict()`` / ``summary()``). Per-stage token deltas reuse one
   tiktoken encoding and one running count.
-- **TF-IDF** — ``linear_kernel`` on L2-normalized vectors (same cosine, less
-  overhead than ``cosine_similarity``).
+- **Docs** — README / PyPI page: 0.7.0 status, absolute GitHub links (relative
+  paths 404 on PyPI), author metadata.
 
 ## [0.6.14] - 2026-09-16
 
