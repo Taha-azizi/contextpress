@@ -36,4 +36,10 @@ python -m benchmarks.run_savings --rebuild-corpus --refresh
 python -m benchmarks.info_fidelity
 ```
 
+Jev (OpenRouter System One) vs raw, on BoolQ-RAG + QuALITY: [`JEV_STUDY.md`](JEV_STUDY.md).
+
+```bash
+python -m benchmarks.run_jev_study
+```
+
 `benchmarks/data/` is gitignored (licenses allow local measurement; do not republish user text).

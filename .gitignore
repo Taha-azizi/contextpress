@@ -38,6 +38,7 @@ articles/
 notes/
 scratch/
 *.local.md
+benchmarks/JEV_ARTICLE.md
 
 # Savings-study downloads (licenses allow local measurement; not for republish)
 benchmarks/data/
