@@ -114,6 +114,12 @@ def build_rewrite_plan(mapping: dict[str, str]) -> RewritePlan:
     )
 
 
+@lru_cache(maxsize=16)
+def load_rewrite_plan(dict_name: str, encoding_name: str) -> RewritePlan:
+    """Build once for each immutable bundled dictionary."""
+    return build_rewrite_plan(load_rewrite_dict(dict_name, encoding_name))
+
+
 def _sub_mapping(match: re.Match[str], mapping: dict[str, str]) -> str:
     surface = match.group(0)
     repl = mapping.get(surface.lower())
@@ -182,9 +188,10 @@ class LexicalCompression(BaseStrategy):
         self._allow_equal_tokens = bool(allow_equal_tokens)
         if self.dict_path is not None:
             self._mapping = load_dict_path(self.dict_path)
+            self._plan = build_rewrite_plan(self._mapping)
         else:
             self._mapping = load_rewrite_dict(dict_name, encoding_name)
-        self._plan = build_rewrite_plan(self._mapping)
+            self._plan = load_rewrite_plan(dict_name, encoding_name)
         self._encoding = get_encoding(encoding_name)
 
     def process(self, conversation: Conversation) -> Conversation:

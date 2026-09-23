@@ -2,7 +2,7 @@
 
 Versions are **[SemVer](https://semver.org/)**. The canonical changelog is [`CHANGELOG.md`](CHANGELOG.md). This file is the GitHub-style narrative for maintainers cutting tags.
 
-**Current package version:** `0.7.0`
+**Current package version:** `0.7.1`
 
 Sources that must match before a PyPI upload (CI runs `python scripts/check_version.py`):
 
@@ -16,6 +16,30 @@ Sources that must match before a PyPI upload (CI runs `python scripts/check_vers
 | PyPI | `pip index versions contextpress` |
 
 Do not retag `main`/`dev` from a machine that has not verified the table above.
+
+---
+
+## 0.7.1 — 2026-09-22
+
+### Why this release
+
+The 0.7.0 lexical fix exposed the next costs on repeated production calls:
+alias candidate validation repeated the same string work, bundled rewrite plans
+were rebuilt for every compression, and stage statistics re-tokenized unchanged
+cloned turns after every stage.
+
+### Changes
+
+- Fuse alias candidate validation without changing which phrases qualify.
+- Cache immutable bundled lexical plans by dictionary + tokenizer encoding.
+- Reuse exact per-turn token counts within one pipeline run.
+
+On the cached 222-item corpus, 888 compressions fell from **216s to 39s** on the
+same machine. Median `low` latency fell from ~280ms to ~34ms; `medium` from
+~312ms to ~68ms; `high` from ~299ms to ~56ms. Token savings are unchanged apart
+from small pre-existing extractive-summary variation.
+
+Tag: `v0.7.1` (local until published)
 
 ---
 

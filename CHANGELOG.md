@@ -6,6 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
 
+## [0.7.1] - 2026-09-22
+
+- **Performance** — alias candidate scanning fuses repeated lowercase,
+  stop-word, and name checks while preserving the accepted phrase set.
+- **Warm calls** — immutable bundled lexical rewrite plans are cached by
+  dictionary and tokenizer encoding instead of rebuilt on every compression.
+- **Stats overhead** — per-run token counting reuses exact counts for unchanged
+  cloned turns across stages. The 222-item / 888-compression benchmark fell from
+  **216s to 39s** on the same machine; median `low` latency fell from ~280ms to
+  ~34ms. Compression presets and intended output behavior are unchanged.
+
 ## [0.7.0] - 2026-09-17
 
 - **Performance** — lexical unigrams (~20k) use a hash lookup instead of one giant
