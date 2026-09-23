@@ -1,6 +1,6 @@
 # Contextpress savings — full measurement report
 
-Tier-1 only. **222** corpus items × **4** presets = **888** compressions in **216s**.
+Tier-1 only. **222** corpus items × **4** presets = **888** compressions in **39s** (0.7.1; 216s before its hot-path work).
 
 Raw rows: `benchmarks/results/runs.jsonl`. Aggregates: `benchmarks/results/summary.json`.
 

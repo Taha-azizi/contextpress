@@ -194,6 +194,25 @@ def _looks_like_name(words: list[str]) -> bool:
     return len(set(content)) >= 2 and all(len(w) >= 3 for w in content)
 
 
+def _candidate_window_ok(words: list[str], lowers: list[str]) -> bool:
+    """Fused hot-path check equivalent to candidate + name validation."""
+    if not (_MIN_WORDS <= len(words) <= _MAX_WORDS):
+        return False
+    if len(" ".join(words)) < _MIN_CHARS:
+        return False
+    content = [word for word in lowers if word not in _STOP]
+    content_count = len(content)
+    if content_count < 1 or content_count < max(1, len(words) // 2):
+        return False
+    if len(set(content)) < 2 and len(set(lowers)) < 2:
+        return False
+
+    caps = sum(1 for word in words if word[:1].isupper())
+    if caps >= 2 or (caps >= 1 and content_count >= 2):
+        return True
+    return len(set(content)) >= 2 and all(len(word) >= 3 for word in content)
+
+
 def _make_abbr(words: list[str], used: set[str]) -> str | None:
     content = [w for w in words if w.lower() not in _STOP] or list(words)
     base = "".join(w[0].upper() for w in content if w)
@@ -227,9 +246,10 @@ def find_alias_map(texts: list[str], *, min_count: int = _MIN_COUNT) -> list[tup
         for n in range(_MIN_WORDS, _MAX_WORDS + 1):
             for i in range(0, len(lowers) - n + 1):
                 words = [toks[i + j][0] for j in range(n)]
-                if not _candidate_ok(words) or not _looks_like_name(words):
+                window_lowers = lowers[i : i + n]
+                if not _candidate_window_ok(words, window_lowers):
                     continue
-                key = " ".join(lowers[i : i + n])
+                key = " ".join(window_lowers)
                 counts[key] += 1
                 display.setdefault(key, " ".join(words))
 

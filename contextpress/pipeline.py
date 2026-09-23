@@ -45,7 +45,7 @@ from contextpress.registry import (
     effective_stage_order,
     registered_stage_names,
 )
-from contextpress.stats import CompressionStats, count_conversation_tokens, get_encoding
+from contextpress.stats import CompressionStats, ConversationTokenCounter, get_encoding
 from contextpress.strategies.abbrev import AbbreviationStrategy
 from contextpress.strategies.alias import AliasStrategy
 from contextpress.strategies.base import BaseStrategy
@@ -94,6 +94,7 @@ class Pipeline:
             )
         self.llm_mode = llm_mode
         self.custom_stages = custom_stages or {}
+        self._encoding = get_encoding(self.model)
 
     def run(
         self,
@@ -102,10 +103,10 @@ class Pipeline:
         *,
         dry_run: bool = False,
     ) -> Conversation:
-        enc = get_encoding(self.model)
+        token_counter = ConversationTokenCounter(self._encoding)
         if stats is not None:
             stats.turns_before = len(conversation.turns)
-            stats.tokens_before = count_conversation_tokens(conversation, self.model, encoding=enc)
+            stats.tokens_before = token_counter.count_conversation(conversation)
             stats.context_type = conversation.type
             stats.token_budget = self.token_budget
             stats.dry_run = dry_run
@@ -132,7 +133,7 @@ class Pipeline:
                 turn_delta = len(result.turns) - before_turns
                 if turn_delta != 0:
                     stats.turn_delta_by_stage[stage_name] = turn_delta
-                after_tokens = count_conversation_tokens(result, self.model, encoding=enc)
+                after_tokens = token_counter.count_conversation(result)
                 token_delta = after_tokens - running_tokens
                 if token_delta != 0:
                     stats.token_delta_by_stage[stage_name] = token_delta
@@ -145,7 +146,7 @@ class Pipeline:
             stats.turns_after = len(result.turns)
             stats.tokens_after = running_tokens
             if self.llm_backend is not None and not dry_run:
-                stats.tokens_after = count_conversation_tokens(result, self.model, encoding=enc)
+                stats.tokens_after = token_counter.count_conversation(result)
             stats.elapsed_ms = round((time.perf_counter() - t_run) * 1000.0, 3)
 
         return result
@@ -174,38 +175,38 @@ class Pipeline:
             return StructureStrategy(**kwargs)
         if name == "lexical":
             return LexicalCompression(
-                encoding_name=get_encoding(self.model).name,
+                encoding_name=self._encoding.name,
                 dict_name="lexical",
                 **kwargs,
             )
         if name == "contractions":
             return LexicalCompression(
-                encoding_name=get_encoding(self.model).name,
+                encoding_name=self._encoding.name,
                 dict_name="contractions",
                 allow_equal_tokens=True,
                 **kwargs,
             )
         if name == "wordy_phrases":
             return LexicalCompression(
-                encoding_name=get_encoding(self.model).name,
+                encoding_name=self._encoding.name,
                 dict_name="wordy_phrases",
                 **kwargs,
             )
         if name == "number_normalize":
             return NumberNormalizeStrategy(
-                encoding_name=get_encoding(self.model).name,
+                encoding_name=self._encoding.name,
                 **kwargs,
             )
         if name == "filler":
             return FillerStrategy(**kwargs)
         if name == "abbrev":
             return AbbreviationStrategy(
-                encoding_name=get_encoding(self.model).name,
+                encoding_name=self._encoding.name,
                 **kwargs,
             )
         if name == "alias":
             return AliasStrategy(
-                encoding_name=get_encoding(self.model).name,
+                encoding_name=self._encoding.name,
                 **kwargs,
             )
         if name == "repetition":
