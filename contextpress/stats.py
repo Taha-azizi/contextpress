@@ -22,7 +22,7 @@ def get_encoding(model: str | None) -> tiktoken.Encoding:
     return tiktoken.get_encoding("cl100k_base")
 
 
-def count_turn_tokens(turn: Turn, encoding: tiktoken.Encoding) -> int:
+def _turn_token_text(turn: Turn) -> str:
     if isinstance(turn.content, str):
         body = turn.content
     else:
@@ -30,7 +30,37 @@ def count_turn_tokens(turn: Turn, encoding: tiktoken.Encoding) -> int:
     extra = tool_payload_text(turn)
     if extra:
         body = f"{body}\n{extra}" if body else extra
-    return len(encoding.encode(f"{turn.role}\n{body}"))
+    return f"{turn.role}\n{body}"
+
+
+def count_turn_tokens(turn: Turn, encoding: tiktoken.Encoding) -> int:
+    return len(encoding.encode(_turn_token_text(turn)))
+
+
+class ConversationTokenCounter:
+    """Per-run token counter that reuses counts for unchanged cloned turns.
+
+    Tier-1 strategies clone every turn, including turns they do not edit.
+    Stage statistics count the whole conversation after every stage, so caching
+    by the exact encoded text avoids repeatedly tokenizing those unchanged clones.
+    The cache belongs to one pipeline run and cannot grow across requests.
+    """
+
+    def __init__(self, encoding: tiktoken.Encoding):
+        self.encoding = encoding
+        self._cache: dict[str, int] = {}
+
+    def count_turn(self, turn: Turn) -> int:
+        text = _turn_token_text(turn)
+        cached = self._cache.get(text)
+        if cached is not None:
+            return cached
+        count = len(self.encoding.encode(text))
+        self._cache[text] = count
+        return count
+
+    def count_conversation(self, conversation: Conversation) -> int:
+        return sum(self.count_turn(turn) for turn in conversation.turns)
 
 
 def count_conversation_tokens(

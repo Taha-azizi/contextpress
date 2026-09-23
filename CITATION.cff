@@ -2,8 +2,8 @@
 # See also: https://citation-file-format.github.io/
 cff-version: 1.2.0
 title: contextpress
-version: 0.7.0
-date-released: "2026-09-17"
+version: 0.7.1
+date-released: "2026-09-22"
 message: >-
   If you use this software in research, please cite it using the metadata below.
 type: software

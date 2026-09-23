@@ -10,7 +10,9 @@
 - **Tier 1, no API key** — `ContextManager` runs deterministic NLP stages (structure, filler, repetition, recency, budget, …). Optional **Tier 2** via `llm_backend=` when you want semantic dedupe/summarize.
 - **`chat` · `rag_doc` · `agent`** — profiles tune filler, resolution, recency, and tool-turn handling for dialogue, RAG chunks, and agent threads.
 - **Measured tradeoffs** — **222** local workloads ([method](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/INFO_FIDELITY.md)): `low` **6.0%** token save / **1.6%** critical-fact loss; `medium` **22.7%** / **15.2%**; `high` **47.7%** / **27.3%** (weighted critical loss).
-- **0.7.0 is faster, same compression** — lexical unigrams use a hash lookup instead of a 20k-word regex; `CompressionStats.elapsed_ms` reports wall time.
+- **0.7.1 makes repeated calls faster, with the same presets** — cached lexical
+  plans, a faster alias scan, and per-run token-count reuse cut the 222-item
+  benchmark from 216s to 39s; `CompressionStats.elapsed_ms` reports wall time.
 
 Created and maintained by **[Taha Azizi](https://github.com/Taha-azizi)**. **Write-up:** [Introducing contextpress](https://pub.towardsai.net/introducing-contextpress-the-python-library-that-refactors-your-llm-context-c57965617edb) (Towards AI).
 
@@ -452,7 +454,7 @@ Long chat histories inflate token usage, bury important facts (lost-in-the-middl
 
 ## Project status
 
-> **Actively stabilizing.** **0.6.x and 0.7.x are stable for Tier 1** (deterministic, offline NLP — no LLM required). Current release: **0.7.0** (speed; same save/fact numbers as 0.6.14).
+> **Actively stabilizing.** **0.6.x and 0.7.x are stable for Tier 1** (deterministic, offline NLP — no LLM required). Current release: **0.7.1** (faster repeated calls; same presets).
 >
 > - Tier 1 (`low` / `medium` / `high`) is the supported product surface. Behavior is covered by tests; numbers above come from the current fidelity corpus.
 > - **0.7.x** is performance and measurement (`elapsed_ms` on stats), not new compression stages.
@@ -474,7 +476,7 @@ For academic use, cite this package in your paper’s software or methods sectio
 
 ## Extension and growth
 
-- **Stabilization** — See [`AUDIT.md`](https://github.com/Taha-azizi/contextpress/blob/dev/AUDIT.md) for known contract gaps. See [`ROADMAP.md`](https://github.com/Taha-azizi/contextpress/blob/dev/ROADMAP.md) for what already shipped in 0.6.x and 0.7.0.
+- **Stabilization** — See [`AUDIT.md`](https://github.com/Taha-azizi/contextpress/blob/dev/AUDIT.md) for known contract gaps. See [`ROADMAP.md`](https://github.com/Taha-azizi/contextpress/blob/dev/ROADMAP.md) for what already shipped in 0.6.x and 0.7.x.
 - **Custom stages** — Subclass `contextpress.strategies.base.BaseStrategy` and plug in via a custom `Pipeline` subclass or future registry hooks.
 - **Tier 2** — Implement `LLMBackend` (`summarize`, `deduplicate`) for provider-specific semantic compression; failures fall back to Tier 1.
 - **Presets API** — `from contextpress.compression import VALID_STAGES, STAGE_ORDER` for tooling and experiments.
