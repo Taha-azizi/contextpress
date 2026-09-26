@@ -36,6 +36,12 @@ python -m benchmarks.run_savings --rebuild-corpus --refresh
 python -m benchmarks.info_fidelity
 ```
 
+Long continuous text (books and encyclopedia extracts, not chats), monolith vs chunked, at 2k / 8k / 20k tokens: [`LONGFORM.md`](LONGFORM.md).
+
+```bash
+python -m benchmarks.run_longform
+```
+
 Jev (OpenRouter System One) vs raw, on BoolQ-RAG + QuALITY: [`JEV_STUDY.md`](JEV_STUDY.md).
 
 ```bash

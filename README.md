@@ -9,7 +9,7 @@
 
 - **Tier 1, no API key** — `ContextManager` runs deterministic NLP stages (structure, filler, repetition, recency, budget, …). Optional **Tier 2** via `llm_backend=` when you want semantic dedupe/summarize.
 - **`chat` · `rag_doc` · `agent`** — profiles tune filler, resolution, recency, and tool-turn handling for dialogue, RAG chunks, and agent threads.
-- **Measured tradeoffs** — **222** local workloads ([method](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/INFO_FIDELITY.md)): `low` **6.0%** token save / **1.6%** critical-fact loss; `medium` **22.7%** / **15.2%**; `high` **47.7%** / **27.3%** (weighted critical loss).
+- **Measured tradeoffs** — **222** local workloads, mostly chat ([method](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/INFO_FIDELITY.md)): `low` **6.0%** token save / **1.6%** critical-fact loss; `medium` **22.7%** / **15.2%**; `high` **47.7%** / **27.3%** (weighted critical loss). Long prose is a separate study ([`benchmarks/LONGFORM.md`](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/LONGFORM.md)): a pasted chapter does not get `medium`/`high` (**6.1%** at 8k, all three presets); chunked sections do (**median 10.4%** at 8k `medium`, **67.1%** mean at 8k `high`, with anchor and number loss on `high`).
 - **0.7.2 is faster on medium/high with throughput metrics** — cached Sumy
   summarizer components drop recency per-turn summarization from ~40ms to ~0.8ms;
   `CompressionStats.tokens_per_second` reports compression throughput.
@@ -79,6 +79,7 @@ Typical chat (median fact loss): **0%** on `low`/`medium`, **33%** on `high`. Ag
 - **Soft loss:** `100 × (1 − TF-IDF cosine)` of the full thread (wording / dropped hedges — not the same as lost IDs).
 - **Contracts:** system prompt unchanged; last-user keywords still present.
 - **Limits:** this is not an LLM-as-judge of answer quality. It answers: *are the hard facts still in the prompt?* Re-run: `python -m benchmarks.info_fidelity` (see [`benchmarks/README.md`](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/README.md)).
+- **Long prose (separate corpus):** 12 Gutenberg / Wikipedia passages at 2k, 8k, and 20k tokens, packed once as a single turn and once as sections. Profile `rag_doc`. Full tables: [`benchmarks/LONGFORM.md`](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/LONGFORM.md). Re-run: `python -m benchmarks.run_longform`.
 
 ---
 
