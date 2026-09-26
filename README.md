@@ -10,9 +10,9 @@
 - **Tier 1, no API key** — `ContextManager` runs deterministic NLP stages (structure, filler, repetition, recency, budget, …). Optional **Tier 2** via `llm_backend=` when you want semantic dedupe/summarize.
 - **`chat` · `rag_doc` · `agent`** — profiles tune filler, resolution, recency, and tool-turn handling for dialogue, RAG chunks, and agent threads.
 - **Measured tradeoffs** — **222** local workloads ([method](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/INFO_FIDELITY.md)): `low` **6.0%** token save / **1.6%** critical-fact loss; `medium` **22.7%** / **15.2%**; `high` **47.7%** / **27.3%** (weighted critical loss).
-- **0.7.1 makes repeated calls faster, with the same presets** — cached lexical
-  plans, a faster alias scan, and per-run token-count reuse cut the 222-item
-  benchmark from 216s to 39s; `CompressionStats.elapsed_ms` reports wall time.
+- **0.7.2 is faster on medium/high with throughput metrics** — cached Sumy
+  summarizer components drop recency per-turn summarization from ~40ms to ~0.8ms;
+  `CompressionStats.tokens_per_second` reports compression throughput.
 
 Created and maintained by **[Taha Azizi](https://github.com/Taha-azizi)**. **Write-up:** [Introducing contextpress](https://pub.towardsai.net/introducing-contextpress-the-python-library-that-refactors-your-llm-context-c57965617edb) (Towards AI).
 
@@ -454,7 +454,7 @@ Long chat histories inflate token usage, bury important facts (lost-in-the-middl
 
 ## Project status
 
-> **Actively stabilizing.** **0.6.x and 0.7.x are stable for Tier 1** (deterministic, offline NLP — no LLM required). Current release: **0.7.1** (faster repeated calls; same presets).
+> **Actively stabilizing.** **0.6.x and 0.7.x are stable for Tier 1** (deterministic, offline NLP — no LLM required). Current release: **0.7.2** (faster recency & throughput metrics; same presets).
 >
 > - Tier 1 (`low` / `medium` / `high`) is the supported product surface. Behavior is covered by tests; numbers above come from the current fidelity corpus.
 > - **0.7.x** is performance and measurement (`elapsed_ms` on stats), not new compression stages.

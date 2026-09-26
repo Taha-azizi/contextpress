@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
 
+## [0.7.2] - 2026-09-23
+
+- **Performance** — recency reuses cached Sumy tokenizer and LSA summarizer components, eliminating repeated Punkt/NLTK re-initialization on summarized turns (drops `_summarize_text` from ~40ms to ~0.8ms). Alias precompiles turn replacement regex patterns and uses faster word-surface scanning. Punctuation cleanup regexes in filler are precompiled at module level.
+- **Observability** — ``CompressionStats.tokens_per_second`` reports end-to-end compression throughput (also included in ``to_dict()``).
+- **Correctness & Tests** — Added immutability regression tests for input messages (AUDIT T1) and comprehensive tests for 0.7.2 optimizations and metrics.
+
 ## [0.7.1] - 2026-09-22
 
 - **Performance** — alias candidate scanning fuses repeated lowercase,

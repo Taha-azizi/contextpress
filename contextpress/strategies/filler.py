@@ -262,15 +262,22 @@ _FILLER_RE = _build_filler_pattern()
 # Keep "actually" when it starts a phrase like "actually, no" (per spec).
 _ACTUALLY_NO = re.compile(r"^\s*actually\s*,\s*no\b", re.IGNORECASE)
 
+_RE_MULTI_SPACE = re.compile(r"\s+")
+_RE_MULTI_COMMA = re.compile(r"\s*,\s*(?:,\s*)+")
+_RE_MULTI_SEMI = re.compile(r"\s*;\s*(?:;\s*)+")
+_RE_SPACE_PUNCT = re.compile(r"\s+([,.;:!?])")
+_RE_LEADING_PUNCT = re.compile(r"^[\s,;:.]+")
+_RE_TRAILING_PUNCT = re.compile(r"[,;]\s*$")
+
 
 def _cleanup_after_filler(text: str) -> str:
     """Repair punctuation left behind after filler phrase removal."""
-    s = re.sub(r"\s+", " ", text)
-    s = re.sub(r"\s*,\s*(?:,\s*)+", ", ", s)
-    s = re.sub(r"\s*;\s*(?:;\s*)+", "; ", s)
-    s = re.sub(r"\s+([,.;:!?])", r"\1", s)
-    s = re.sub(r"^[\s,;:.]+", "", s)
-    s = re.sub(r"[,;]\s*$", "", s)
+    s = _RE_MULTI_SPACE.sub(" ", text)
+    s = _RE_MULTI_COMMA.sub(", ", s)
+    s = _RE_MULTI_SEMI.sub("; ", s)
+    s = _RE_SPACE_PUNCT.sub(r"\1", s)
+    s = _RE_LEADING_PUNCT.sub("", s)
+    s = _RE_TRAILING_PUNCT.sub("", s)
     s = s.strip()
     if s and s[0].islower():
         s = s[0].upper() + s[1:]

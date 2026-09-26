@@ -58,5 +58,6 @@ Same Tier-1 behavior as 0.6.14. The series is faster calls and better timing, no
 |---------|--------|
 | **0.7.0** | Lexical unigram hash matcher; ``elapsed_ms`` / ``elapsed_ms_by_stage``; lazy NLTK/Sumy import |
 | **0.7.1** | Faster alias candidate scan; cached bundled rewrite plans; per-run token-count reuse for stage stats |
+| **0.7.2** | Cached Sumy components in recency; precompiled alias turn patterns; ``tokens_per_second`` on stats |
 
 Stay classical-NLP-first; keep optional LLM extras optional.

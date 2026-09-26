@@ -2,7 +2,7 @@
 
 Versions are **[SemVer](https://semver.org/)**. The canonical changelog is [`CHANGELOG.md`](CHANGELOG.md). This file is the GitHub-style narrative for maintainers cutting tags.
 
-**Current package version:** `0.7.1`
+**Current package version:** `0.7.2`
 
 Sources that must match before a PyPI upload (CI runs `python scripts/check_version.py`):
 
@@ -16,6 +16,24 @@ Sources that must match before a PyPI upload (CI runs `python scripts/check_vers
 | PyPI | `pip index versions contextpress` |
 
 Do not retag `main`/`dev` from a machine that has not verified the table above.
+
+---
+
+## 0.7.2 — 2026-09-23
+
+### Why this release
+
+While 0.7.0 and 0.7.1 optimized lexical and alias stages, recency summarization was repeatedly instantiating `Tokenizer("english")` and loading NLTK punkt tables on every summarized turn (~40 ms each). Caching these components drops per-turn summarization to ~0.8 ms.
+
+### Changes
+
+- Cache Sumy tokenizer and LSA summarizer components on first import in `recency`.
+- Precompile alias replacement regex patterns across turns and optimize word extraction.
+- Precompile filler cleanup regex patterns.
+- Add `CompressionStats.tokens_per_second` for compression throughput tracking.
+- Add regression test for input messages immutability (AUDIT T1).
+
+Tag: `v0.7.2` (local until published)
 
 ---
 
