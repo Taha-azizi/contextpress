@@ -151,6 +151,11 @@ _MIN_CHARS = 10
 _MAX_ALIASES = 12
 
 
+def _words(text: str) -> list[str]:
+    """Return surfaces for alphabetic tokens."""
+    return _WORD.findall(text or "")
+
+
 def _tokens(text: str) -> list[tuple[str, int, int]]:
     """Return (surface, start, end) for alphabetic tokens."""
     return [(m.group(0), m.start(), m.end()) for m in _WORD.finditer(text or "")]
@@ -198,7 +203,7 @@ def _candidate_window_ok(words: list[str], lowers: list[str]) -> bool:
     """Fused hot-path check equivalent to candidate + name validation."""
     if not (_MIN_WORDS <= len(words) <= _MAX_WORDS):
         return False
-    if len(" ".join(words)) < _MIN_CHARS:
+    if sum(len(w) for w in words) + len(words) - 1 < _MIN_CHARS:
         return False
     content = [word for word in lowers if word not in _STOP]
     content_count = len(content)
@@ -241,11 +246,11 @@ def find_alias_map(texts: list[str], *, min_count: int = _MIN_COUNT) -> list[tup
     counts: Counter[str] = Counter()
     display: dict[str, str] = {}
     for text in texts:
-        toks = _tokens(text)
-        lowers = [t[0].lower() for t in toks]
+        surfaces = _words(text)
+        lowers = [s.lower() for s in surfaces]
         for n in range(_MIN_WORDS, _MAX_WORDS + 1):
             for i in range(0, len(lowers) - n + 1):
-                words = [toks[i + j][0] for j in range(n)]
+                words = surfaces[i : i + n]
                 window_lowers = lowers[i : i + n]
                 if not _candidate_window_ok(words, window_lowers):
                     continue
@@ -259,7 +264,7 @@ def find_alias_map(texts: list[str], *, min_count: int = _MIN_COUNT) -> list[tup
             continue
         phrase = display[key]
         # Net token-ish char savings after paying for " (ABBR)" on first use.
-        overhead = len(f" ({'X' * 3})")  # approx; refined after abbr chosen
+        overhead = 7  # approx len(" (XXX)"); refined after abbr chosen
         raw = (len(phrase) - 3) * (count - 1) - overhead
         if raw <= 0:
             continue
@@ -295,22 +300,35 @@ def find_alias_map(texts: list[str], *, min_count: int = _MIN_COUNT) -> list[tup
     return out
 
 
+def _compile_alias_patterns(
+    aliases: list[tuple[str, str]],
+) -> list[tuple[re.Pattern[str], str, str]]:
+    return [
+        (re.compile(rf"\b{re.escape(phrase)}\b", re.IGNORECASE), phrase.lower(), abbr)
+        for phrase, abbr in aliases
+    ]
+
+
 def apply_aliases_to_text(
     text: str,
-    aliases: list[tuple[str, str]],
+    aliases: list[tuple[str, str]] | list[tuple[re.Pattern[str], str, str]],
     seen: dict[str, bool],
 ) -> str:
     """Apply aliases; ``seen`` tracks whether the definition form was emitted."""
     if not text or not aliases:
         return text
     out = text
-    for phrase, abbr in aliases:
-        pattern = re.compile(rf"\b{re.escape(phrase)}\b", re.IGNORECASE)
+    for item in aliases:
+        if len(item) == 3 and isinstance(item[0], re.Pattern):
+            pattern, key, abbr = item
+        else:
+            phrase, abbr = item
+            pattern = re.compile(rf"\b{re.escape(phrase)}\b", re.IGNORECASE)
+            key = phrase.lower()
 
-        def _repl(match: re.Match[str], *, _phrase: str = phrase, _abbr: str = abbr) -> str:
-            key = _phrase.lower()
-            if not seen.get(key):
-                seen[key] = True
+        def _repl(match: re.Match[str], *, _key: str = key, _abbr: str = abbr) -> str:
+            if not seen.get(_key):
+                seen[_key] = True
                 return f"{match.group(0)} ({_abbr})"
             return _abbr
 
@@ -353,6 +371,7 @@ class AliasStrategy(BaseStrategy):
                 metadata=copy.deepcopy(conversation.metadata),
             )
 
+        compiled_patterns = _compile_alias_patterns(aliases)
         seen: dict[str, bool] = {}
         candidates: list[Turn] = []
         before_tokens = 0
@@ -365,7 +384,7 @@ class AliasStrategy(BaseStrategy):
                 candidates.append(clone_turn(turn))
                 continue
             original = editable_map[i]
-            new_text = apply_aliases_to_text(original, aliases, seen)
+            new_text = apply_aliases_to_text(original, compiled_patterns, seen)
             before_tokens += len(enc.encode(original))
             after_tokens += len(enc.encode(new_text))
             if new_text != original:

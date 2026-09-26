@@ -121,6 +121,13 @@ class CompressionStats:
         return round(100.0 * self.tokens_saved / self.tokens_before, 2)
 
     @property
+    def tokens_per_second(self) -> float | None:
+        """Compression throughput: tokens_before / (elapsed_ms / 1000)."""
+        if self.elapsed_ms is None or self.elapsed_ms <= 0:
+            return None
+        return round(self.tokens_before / (self.elapsed_ms / 1000.0), 1)
+
+    @property
     def estimated_cost_saved_usd(self) -> float | None:
         """Approximate input-USD saved (None if cost was not attached)."""
         before = self.estimated_input_cost_before_usd
@@ -210,6 +217,7 @@ class CompressionStats:
             "token_delta_by_stage": dict(self.token_delta_by_stage),
             "elapsed_ms": self.elapsed_ms,
             "elapsed_ms_by_stage": dict(self.elapsed_ms_by_stage),
+            "tokens_per_second": self.tokens_per_second,
             "llm_tier_applied": self.llm_tier_applied,
             "llm_dedup_turns_before": self.llm_dedup_turns_before,
             "llm_dedup_turns_after": self.llm_dedup_turns_after,

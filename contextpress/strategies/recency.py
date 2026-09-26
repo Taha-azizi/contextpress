@@ -10,6 +10,19 @@ from contextpress.text_sim import tfidf_cosine
 from contextpress.tools import preserve_structured_turn
 
 _SENT_SPLIT = re.compile(r"(?<=[.!?])\s+")
+_SUMY_TOKENIZER = None
+_SUMY_SUMMARIZER = None
+
+
+def _get_sumy_components():
+    global _SUMY_TOKENIZER, _SUMY_SUMMARIZER
+    if _SUMY_TOKENIZER is None or _SUMY_SUMMARIZER is None:
+        from sumy.nlp.tokenizers import Tokenizer
+        from sumy.summarizers.lsa import LsaSummarizer
+
+        _SUMY_TOKENIZER = Tokenizer("english")
+        _SUMY_SUMMARIZER = LsaSummarizer()
+    return _SUMY_TOKENIZER, _SUMY_SUMMARIZER
 
 
 def _sentence_count(text: str) -> int:
@@ -40,12 +53,10 @@ def _summarize_text(text: str, sentence_count: int) -> str:
     if sentence_count <= 0:
         return text
     try:
-        from sumy.nlp.tokenizers import Tokenizer
         from sumy.parsers.plaintext import PlaintextParser
-        from sumy.summarizers.lsa import LsaSummarizer
 
-        parser = PlaintextParser.from_string(text, Tokenizer("english"))
-        summarizer = LsaSummarizer()
+        tok, summarizer = _get_sumy_components()
+        parser = PlaintextParser.from_string(text, tok)
         sents = summarizer(parser.document, sentence_count)
         if not sents:
             return text
