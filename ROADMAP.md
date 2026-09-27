@@ -59,71 +59,29 @@ Same Tier-1 behavior as 0.6.14. The series is faster calls and better timing, no
 | **0.7.0** | Lexical unigram hash matcher; ``elapsed_ms`` / ``elapsed_ms_by_stage``; lazy NLTK/Sumy import |
 | **0.7.1** | Faster alias candidate scan; cached bundled rewrite plans; per-run token-count reuse for stage stats |
 | **0.7.2** | Cached Sumy components in recency; precompiled alias turn patterns; ``tokens_per_second`` on stats |
+| **0.7.3** | `rag_doc` `medium`/`high` sentence-rank a pasted turn over 1,500 tokens. Monolith 8k `medium` **6.1% → 57.2%** save, anchor **100%**. Chunked 8k `medium` median stays **10.4%**. |
 
 Stay classical-NLP-first; keep optional LLM extras optional.
 
-## 0.7.3 – 0.7.5 — long prose, planned
+## 0.7.4 – 0.7.5 — long prose, planned
+
+**0.7.3 shipped.** A pasted `rag_doc` turn over 1,500 tokens is sentence-ranked on `medium` and `high`. The gates below for chunked threads are unchanged, because those sections stayed under 1,500 tokens. Monolith `high` now keeps **0.4%** of passage numbers at 20k; 0.7.5 must pin figures dropped from inside that turn, not only figures dropped by trim.
 
 The chat fidelity study (222 items) is the wrong headline for documents.
-[`benchmarks/LONGFORM.md`](benchmarks/LONGFORM.md) is the baseline these three
-releases have to beat. Profile is `rag_doc`. Same machine, same script
-(`python -m benchmarks.run_longform`). Do not treat a one-point wobble in a
-Sumy cell as a product change; do treat a move in the monolith row, the
-question-intact count, or chunked `high` anchor/number retention as the point
-of the release.
+[`benchmarks/LONGFORM.md`](benchmarks/LONGFORM.md) is the baseline 0.7.4 and
+0.7.5 have to beat. Profile is `rag_doc`. Same machine, same script
+(`python -m benchmarks.run_longform`).
 
-Measured on 12 public-domain / CC BY-SA works (204 compressions):
+Measured on 12 public-domain / CC BY-SA works after 0.7.3 (204 compressions):
 
 | Job | What happened |
 |-----|----------------|
-| **Monolith** (one pasted passage + question) | `low` = `medium` = `high`. **6.1%** mean save at 8k, **6.9%** at 20k. Anchor words and passage numbers stay (~100%). Gutenberg books **8.8%** at 8k; Wikipedia extracts **0.6%**. Recency and trim never run: two non-system turns are inside the protected tail. |
-| **Chunked `medium`** | Median save **5.8% / 10.4% / 12.3%** at 2k / 8k / 20k (means 12.2 / 16.6 / 20.4, sd **23.1** at 20k). Anchor words **96.7%** at 20k. Passage numbers **85.9%** at 20k. The spread is the relevance gate, not noise. |
-| **Chunked `high`** | Mean save **55.4% → 67.1% → 85.3%** as length grows. Almost all of the 20k cut is trim (~15.4k tokens removed). Anchor retention **46.3% / 69.5% / 43.9%**. Passage numbers **33.7% / 43.7% / 37.7%**. At 8k `high`, fiction keeps ~1% of numbers and nonfiction ~65%. |
-| **Contracts** | System turn **204/204** intact. Question turn **186/204**: filler rewrites discourse words inside the quoted question. |
-
-Chat and agent presets stay on the 0.6.14 behavior. These releases are
-`rag_doc` (and the long-turn case) unless a bullet says otherwise.
-
-### 0.7.3 — Compress a pasted chapter inside the turn
-
-**Problem.** People paste a chapter, a PDF extract, or a Wikipedia article as
-one user message. Today that job cannot reach recency or trim, so choosing
-`medium` or `high` does nothing beyond filler. Filler is worth ~9% on
-19th-century prose and ~0% on encyclopedia text.
-
-**Behavior.**
-
-- Only when `type="rag_doc"` and compression is `medium` or `high`.
-- Only on a non-question turn longer than **1,500 tokens** (cl100k). Chunked
-  sections in the longform study are ~700 tokens, so they must not enter this
-  path. The last user turn (the question) is never split.
-- Split that turn into sentences. Score each sentence against the question
-  with the existing TF-IDF cosine. Keep every sentence at or above the
-  current rag_doc relevance cutoff (0.3), plus enough lead sentences that a
-  short answer still has context.
-- `medium` keeps more (target roughly a third of the sentences, floored by
-  the relevant set). `high` keeps the relevant set and a thinner lead.
-- No new dependency. No change to `chat` or `agent`. No change to turns that
-  are under the 1,500-token bar.
-
-**Tests.**
-
-- Fixture: one ~3k-token prose turn + a question that names a sentence in the
-  middle. Question byte-identical. That sentence still present. An off-topic
-  paragraph near the end is shorter or gone.
-- Fixture: eight short sections + question (the chunked shape). Output matches
-  today’s chunked `medium` / `high` for that fixture, so the new branch did
-  not fire.
-- Input messages still immutable.
-
-**Release gate (re-run LONGFORM.md).**
-
-- Monolith 8k `medium`: mean save **from 6.1% to at least 15%**, anchor-word
-  retention **at least 95%** (today 100% because the body is not summarized).
-- Monolith 20k `high`: mean save **from 6.9% to at least 25%**, anchor-word
-  retention **at least 90%**.
-- Chunked 8k `medium` median stays within **2 points of 10.4%**. If it moves
-  more, the length gate is wrong and the release stops.
+| **Monolith `low`** | Still filler. **6.1%** mean save at 8k, numbers **100%**. Gutenberg **8.8%**, Wikipedia **0.6%**. |
+| **Monolith `medium`** | **57.2%** mean save at 8k, anchor words **100%**, passage numbers **26.7%**. |
+| **Monolith `high`** | **99.1%** mean save at 20k, anchor **94.3%**, passage numbers **0.4%**. |
+| **Chunked `medium`** | Median save **5.8% / 10.4% / 12.4%** at 2k / 8k / 20k. Unchanged by 0.7.3. |
+| **Chunked `high`** | Mean save **55.4% → 67.1% → 85.3%**. Anchor retention **46.3% / 69.5% / 43.9%**. Passage numbers **33.7% / 43.7% / 37.7%**. |
+| **Contracts** | System turn **204/204**. Question turn **186/204** (filler still rewrites the quoted question). |
 
 ### 0.7.4 — Keep the question, and keep the section it points at
 
@@ -180,8 +138,8 @@ as facts does not.
 **Behavior.**
 
 - `rag_doc` only, `medium` and `high` only.
-- When recency replaces a turn’s text, or trim drops a turn, scan the
-  discarded text for the same span classes as `benchmarks/info_fidelity.py`:
+- When a long-turn sentence cut, recency replacement, or trim drop discards
+  text, scan that text for the same span classes as `benchmarks/info_fidelity.py`:
   URLs, emails, paths, versions / decimals / 3+ digit numbers, ISO dates.
 - Spans that are no longer present anywhere in the output are appended once,
   in a single trailing line on the trim stub or on the summarized turn:

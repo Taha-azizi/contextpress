@@ -50,7 +50,7 @@ from contextpress import ContextManager  # noqa: E402
 
 UA = {
     "User-Agent": (
-        "contextpress-longform-benchmark/0.7.2 "
+        "contextpress-longform-benchmark/0.7.3 "
         "(local research; +https://github.com/Taha-azizi/contextpress)"
     )
 }
@@ -441,8 +441,10 @@ def _findings(rows: list[dict[str, Any]]) -> list[str]:
     def cell(packing: str, length: str, preset: str) -> dict[str, Any]:
         return _cell(rows, packing=packing, length=length, preset=preset)
 
-    mono8 = cell("monolith", "8k", "low")
-    mono20 = cell("monolith", "20k", "high")
+    mono8l = cell("monolith", "8k", "low")
+    mono8m = cell("monolith", "8k", "medium")
+    mono8h = cell("monolith", "8k", "high")
+    mono20h = cell("monolith", "20k", "high")
     ch2m = cell("chunked", "2k", "medium")
     ch8m = cell("chunked", "8k", "medium")
     ch20m = cell("chunked", "20k", "medium")
@@ -451,15 +453,17 @@ def _findings(rows: list[dict[str, Any]]) -> list[str]:
     ch20h = cell("chunked", "20k", "high")
     ch8l = cell("chunked", "8k", "low")
     return [
-        "- **Pasting a long text as one turn does not get medium or high.**",
-        f"  Monolith `low`, `medium`, and `high` are the same row: "
-        f"**{_fmt(mono8['mean_save'], '%')}** mean save at 8k "
-        f"(n={mono8['n']}, anchor {_fmt(mono8['mean_anchor'], '%')}, "
-        f"numbers {_fmt(mono8['mean_numbers'], '%')}) and "
-        f"**{_fmt(mono20['mean_save'], '%')}** at 20k. Recency and trim never",
-        "  see a thread long enough to run. That ~6–9% on Gutenberg is filler",
-        "  removal, not summarization. Wikipedia monoliths are near zero",
-        "  (see the family table).",
+        "- **A pasted chapter gets `medium` and `high` inside the turn (0.7.3).**",
+        "  A `rag_doc` turn over 1,500 tokens that is not the question is cut",
+        "  to sentences that match the question, plus a lead. Monolith 8k mean",
+        f"  save is `low` **{_fmt(mono8l['mean_save'], '%')}**, "
+        f"`medium` **{_fmt(mono8m['mean_save'], '%')}** "
+        f"(anchor {_fmt(mono8m['mean_anchor'], '%')}), "
+        f"`high` **{_fmt(mono8h['mean_save'], '%')}**. "
+        f"Monolith 20k `high` is **{_fmt(mono20h['mean_save'], '%')}** save",
+        f"  with anchor {_fmt(mono20h['mean_anchor'], '%')}. "
+        f"`high` keeps a two-sentence lead plus matches, so passage numbers",
+        f"  fall to {_fmt(mono20h['mean_numbers'], '%')} at 20k.",
         "- **Chunk the passage and `medium` starts to move, with a wide spread.**",
         "  Quote the median: chunked `medium` is "
         f"**{_fmt(ch2m['median_save'], '%')}** / "
@@ -488,9 +492,9 @@ def _findings(rows: list[dict[str, Any]]) -> list[str]:
         f"{_fmt(ch20h['mean_numbers'], '%')} at 20k. At chunked 8k `high`,",
         "  fiction keeps about 1% of passage numbers and nonfiction about 65%:",
         "  novels have few figures, and trim drops the sections that held them.",
-        "- **Use this corpus for the document claim, and the 222-item study for chat.**",
-        "  Quoting only the chat headline understates chunked `high` and",
-        "  overstates what a single pasted chapter will save.",
+        "- **Use this corpus for a pasted chapter, and the 222-item study for chat.**",
+        "  On a pasted chapter, `low` is still about 6%. `medium` and `high`",
+        "  now cut inside that one turn. Chunked `high` is still a middle-cut.",
     ]
 
 
@@ -531,13 +535,12 @@ def _write_report(
         "",
         "### Why two packings",
         "",
-        "`rag_doc` recency summarizes a turn only when it is **not** one of the",
-        "last three non-system turns and its TF-IDF similarity to the query is",
-        "below 0.3. Trim keeps a head and a tail and drops the middle, and it",
-        "does nothing unless the thread is longer than that head+tail. A pasted",
-        "article plus a question is two non-system turns, so `medium` and `high`",
-        "collapse to wording cleanup. Chunking is what makes the long-document",
-        "path actually run.",
+        "Turn-level recency still skips the last three non-system turns, and",
+        "trim still needs a longer thread than a passage plus a question.",
+        "From 0.7.3, `medium` and `high` also sentence-rank a `rag_doc` turn",
+        "longer than 1,500 tokens when it is not the question. `low` does not.",
+        "Chunked sections in this study stay under that bar, so they still",
+        "show the older turn-level path.",
         "",
         "### Sources",
         "",
@@ -644,9 +647,9 @@ def _write_report(
             "",
             "## Gutenberg vs Wikipedia (monolith, 8k)",
             "",
-            "Same preset on both families, because a one-turn paste never reaches",
-            "recency or trim. 19th-century books contain filler words the stage",
-            "strips (`very`, `quite`, `rather`). Encyclopedia extracts mostly do not.",
+            "This table is `low` only. 19th-century books contain filler words",
+            "the stage strips (`very`, `quite`, `rather`). Encyclopedia extracts",
+            "mostly do not. `medium` and `high` no longer stay on this row.",
             "",
             "| family | n | mean save | anchor kept | numbers kept |",
             "| --- | ---: | ---: | ---: | ---: |",
@@ -698,9 +701,11 @@ def _write_report(
             "  many sections in the window, one question at the end. Savings should",
             "  climb with length because more of the passage sits outside the",
             "  protected tail.",
-            "- **Monolith** numbers are the honest ceiling for “paste a chapter into",
-            "  one message.” If they sit near zero, that is a product gap (no",
-            "  within-turn extractive compression), not a property of long text.",
+            "- **Monolith `low`** is filler only. **Monolith `medium`** keeps about",
+            "  a third of the sentences, including every sentence whose TF-IDF",
+            "  similarity to the question is at least 0.3, plus a four-sentence",
+            "  lead. **Monolith `high`** keeps that relevant set and a",
+            "  two-sentence lead, so figures outside those sentences are dropped.",
             "- **Anchor retention** checks the sentence the question points at.",
             "  **Number retention** checks the whole passage, including sections",
             "  the preset is allowed to summarize or drop.",

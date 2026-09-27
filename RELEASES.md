@@ -2,7 +2,7 @@
 
 Versions are **[SemVer](https://semver.org/)**. The canonical changelog is [`CHANGELOG.md`](CHANGELOG.md). This file is the GitHub-style narrative for maintainers cutting tags.
 
-**Current package version:** `0.7.2`
+**Current package version:** `0.7.3`
 
 Sources that must match before a PyPI upload (CI runs `python scripts/check_version.py`):
 
@@ -16,6 +16,23 @@ Sources that must match before a PyPI upload (CI runs `python scripts/check_vers
 | PyPI | `pip index versions contextpress` |
 
 Do not retag `main`/`dev` from a machine that has not verified the table above.
+
+---
+
+## 0.7.3 — 2026-09-27
+
+### Why this release
+
+A chapter pasted as one user message never reached recency or trim, so `medium` and `high` saved the same ~6% as `low`. The long-prose study set the gate: move that pasted-chapter row without moving chunked sections.
+
+### Changes
+
+- `rag_doc` `medium` / `high`: turns over 1,500 cl100k tokens, except the last user turn, keep query-matching sentences (cosine ≥ 0.3) plus a lead. `medium` fills to about one third of the sentences (four-sentence lead). `high` keeps a two-sentence lead and the matches.
+- `low`, chat, and agent presets are unchanged. Shorter turns still use turn-level recency.
+
+On the 12-work long-prose corpus, monolith 8k `medium` mean save went from **6.1% to 57.2%** with **100%** anchor-word retention. Monolith 20k `high` is **99.1%** save and **94.3%** anchor retention. Chunked 8k `medium` median stayed **10.4%**. `high` drops figures that sit outside the kept sentences (20k monolith number retention **0.4%**). Pinning those spans is 0.7.5.
+
+Tag: `v0.7.3` (local until published)
 
 ---
 

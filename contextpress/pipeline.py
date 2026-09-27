@@ -6,7 +6,9 @@ CONTEXTPRESS BEHAVIOR CONTRACT
    be met (emits a warning).
 2. Input is NEVER mutated. Always return new objects.
 3. Output format ALWAYS mirrors input format.
-4. Most recent 3 non-system turns are NEVER compressed by recency.
+4. Most recent 3 non-system turns are NEVER compressed by recency, except a
+   ``rag_doc`` turn longer than 1,500 tokens that is not the last user turn.
+   On ``medium`` / ``high`` that turn is reduced to query-relevant sentences.
 5. Last 2 non-system turns are NEVER removed by budget.
 6. Trim never removes system turns, the opening non-system turns, or the last 3
    non-system turns. Tool call/result groups that fall in the dropped span are kept.
@@ -216,7 +218,10 @@ class Pipeline:
         if name == "resolution":
             return ResolutionStrategy(**kwargs)
         if name == "recency":
-            return RecencyStrategy(**kwargs)
+            long_turn_mode = None
+            if self.profile.name == "rag_doc":
+                long_turn_mode = "high" if self.profile.trim.enabled else "medium"
+            return RecencyStrategy(**kwargs, long_turn_mode=long_turn_mode)
         if name == "budget":
             if self.token_budget is None:
                 raise RuntimeError("budget stage requires token_budget")

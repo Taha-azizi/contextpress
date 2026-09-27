@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
 
+## [0.7.3] - 2026-09-27
+
+- **Long passages** — on `rag_doc` `medium` and `high`, a turn longer than 1,500 tokens that is not the last user turn is reduced to sentences matching the question (TF-IDF cosine ≥ 0.3) plus a lead. `medium` also fills to about one third of the sentences. `high` keeps a two-sentence lead. `low`, `chat`, and `agent` are unchanged. Turns at or under 1,500 tokens stay on the previous recency path, so chunked sections are not sentence-ranked.
+- **Measured** — pasted 8k prose: `medium` mean save **57.2%** with **100%** anchor-word retention (was 6.1% when `medium` could not see a one-turn paste). Pasted 20k `high`: **99.1%** save, **94.3%** anchor retention. Chunked 8k `medium` median stays **10.4%**. Passage numbers outside the kept sentences are not pinned yet (monolith 20k `high` keeps **0.4%**).
+
 ## [0.7.2] - 2026-09-23
 
 - **Performance** — recency reuses cached Sumy tokenizer and LSA summarizer components, eliminating repeated Punkt/NLTK re-initialization on summarized turns (drops `_summarize_text` from ~40ms to ~0.8ms). Alias precompiles turn replacement regex patterns and uses faster word-surface scanning. Punctuation cleanup regexes in filler are precompiled at module level.

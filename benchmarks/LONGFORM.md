@@ -26,13 +26,12 @@ Re-run: `python -m benchmarks.run_longform`.
 
 ### Why two packings
 
-`rag_doc` recency summarizes a turn only when it is **not** one of the
-last three non-system turns and its TF-IDF similarity to the query is
-below 0.3. Trim keeps a head and a tail and drops the middle, and it
-does nothing unless the thread is longer than that head+tail. A pasted
-article plus a question is two non-system turns, so `medium` and `high`
-collapse to wording cleanup. Chunking is what makes the long-document
-path actually run.
+Turn-level recency still skips the last three non-system turns, and
+trim still needs a longer thread than a passage plus a question.
+From 0.7.3, `medium` and `high` also sentence-rank a `rag_doc` turn
+longer than 1,500 tokens when it is not the question. `low` does not.
+Chunked sections in this study stay under that bar, so they still
+show the older turn-level path.
 
 ### Sources
 
@@ -69,29 +68,29 @@ off-query sections are summarized or cut.
 
 | length | preset | n | mean save | median save | sd | anchor words kept | numbers kept | median ms |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 2k | `low` | 12 | 3.9% | 4.8% | 2.8 | 99.4% | 100.0% | 21.9 |
-| 2k | `medium` | 12 | 12.2% | 5.8% | 14.1 | 99.4% | 94.4% | 35.8 |
-| 2k | `high` | 12 | 55.4% | 53.2% | 11.8 | 46.3% | 33.7% | 31.0 |
-| 8k | `low` | 12 | 7.0% | 7.2% | 5.0 | 96.4% | 100.0% | 79.6 |
-| 8k | `medium` | 12 | 16.6% | 10.4% | 18.1 | 96.4% | 76.6% | 110.9 |
-| 8k | `high` | 12 | 67.1% | 66.8% | 7.8 | 69.5% | 43.7% | 97.9 |
-| 20k | `low` | 10 | 6.1% | 7.2% | 3.0 | 96.7% | 100.0% | 190.4 |
-| 20k | `medium` | 10 | 20.4% | 12.3% | 23.1 | 96.7% | 85.9% | 284.4 |
-| 20k | `high` | 10 | 85.3% | 85.4% | 3.3 | 43.9% | 37.7% | 200.7 |
+| 2k | `low` | 12 | 3.9% | 4.8% | 2.8 | 99.4% | 100.0% | 9.9 |
+| 2k | `medium` | 12 | 12.2% | 5.8% | 14.1 | 99.4% | 94.4% | 16.2 |
+| 2k | `high` | 12 | 55.4% | 53.2% | 11.8 | 46.3% | 33.7% | 13.2 |
+| 8k | `low` | 12 | 7.0% | 7.2% | 5.0 | 96.4% | 100.0% | 35.9 |
+| 8k | `medium` | 12 | 16.6% | 10.4% | 18.1 | 96.4% | 76.6% | 51.2 |
+| 8k | `high` | 12 | 67.1% | 66.8% | 7.8 | 69.5% | 43.7% | 41.4 |
+| 20k | `low` | 10 | 6.1% | 7.2% | 3.0 | 96.7% | 100.0% | 86.4 |
+| 20k | `medium` | 10 | 20.4% | 12.4% | 23.1 | 96.7% | 85.9% | 140.1 |
+| 20k | `high` | 10 | 85.3% | 85.4% | 3.3 | 43.9% | 37.7% | 92.1 |
 
 ### Single pasted passage (monolith)
 
 | length | preset | n | mean save | median save | sd | anchor words kept | numbers kept | median ms |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| 2k | `low` | 12 | 6.1% | 7.5% | 4.5 | 99.4% | 100.0% | 23.5 |
-| 2k | `medium` | 12 | 6.1% | 7.5% | 4.5 | 99.4% | 100.0% | 24.4 |
-| 2k | `high` | 12 | 6.1% | 7.5% | 4.5 | 99.4% | 100.0% | 22.6 |
-| 8k | `low` | 12 | 6.1% | 7.4% | 4.3 | 100.0% | 100.0% | 79.8 |
-| 8k | `medium` | 12 | 6.1% | 7.4% | 4.3 | 100.0% | 100.0% | 84.6 |
-| 8k | `high` | 12 | 6.1% | 7.4% | 4.3 | 100.0% | 100.0% | 84.8 |
-| 20k | `low` | 10 | 6.9% | 7.9% | 3.6 | 96.7% | 100.0% | 193.1 |
-| 20k | `medium` | 10 | 6.9% | 7.9% | 3.6 | 96.7% | 100.0% | 189.4 |
-| 20k | `high` | 10 | 6.9% | 7.9% | 3.6 | 96.7% | 100.0% | 199.3 |
+| 2k | `low` | 12 | 6.1% | 7.5% | 4.5 | 99.4% | 100.0% | 10.7 |
+| 2k | `medium` | 12 | 54.4% | 53.8% | 5.9 | 99.4% | 53.7% | 13.8 |
+| 2k | `high` | 12 | 91.2% | 91.9% | 2.5 | 99.4% | 1.8% | 13.1 |
+| 8k | `low` | 12 | 6.1% | 7.4% | 4.3 | 100.0% | 100.0% | 38.1 |
+| 8k | `medium` | 12 | 57.2% | 57.2% | 4.6 | 100.0% | 26.7% | 48.0 |
+| 8k | `high` | 12 | 97.8% | 98.1% | 0.7 | 100.0% | 0.7% | 46.2 |
+| 20k | `low` | 10 | 6.9% | 7.9% | 3.6 | 96.7% | 100.0% | 92.0 |
+| 20k | `medium` | 10 | 56.9% | 57.2% | 3.3 | 96.7% | 42.1% | 111.7 |
+| 20k | `high` | 10 | 99.1% | 99.1% | 0.2 | 94.3% | 0.4% | 109.0 |
 
 ## Where the tokens go (chunked, mean tokens removed per stage)
 
@@ -110,8 +109,8 @@ stay off on this profile.
 | 8k | `medium` | 0.0 | 413.5 | 143.7 | 0.0 | 761.6 |
 | 8k | `high` | 0.0 | 413.5 | 143.7 | 4626.7 | 206.0 |
 | 20k | `low` | 0.0 | 1218.6 | 0.0 | 0.0 | 0.0 |
-| 20k | `medium` | 0.0 | 1218.6 | 0.0 | 0.0 | 2870.6 |
-| 20k | `high` | 0.0 | 1218.6 | 0.0 | 15406.9 | 220.1 |
+| 20k | `medium` | 0.0 | 1218.6 | 0.0 | 0.0 | 2870.8 |
+| 20k | `high` | 0.0 | 1218.6 | 0.0 | 15406.9 | 220.3 |
 
 ## Fiction vs nonfiction (chunked, 8k tokens)
 
@@ -126,9 +125,9 @@ stay off on this profile.
 
 ## Gutenberg vs Wikipedia (monolith, 8k)
 
-Same preset on both families, because a one-turn paste never reaches
-recency or trim. 19th-century books contain filler words the stage
-strips (`very`, `quite`, `rather`). Encyclopedia extracts mostly do not.
+This table is `low` only. 19th-century books contain filler words
+the stage strips (`very`, `quite`, `rather`). Encyclopedia extracts
+mostly do not. `medium` and `high` no longer stay on this row.
 
 | family | n | mean save | anchor kept | numbers kept |
 | --- | ---: | ---: | ---: | ---: |
@@ -145,20 +144,21 @@ strips (`very`, `quite`, `rather`). Encyclopedia extracts mostly do not.
 
 ## What the numbers say
 
-- **Pasting a long text as one turn does not get medium or high.**
-  Monolith `low`, `medium`, and `high` are the same row: **6.1%** mean save at 8k (n=12, anchor 100.0%, numbers 100.0%) and **6.9%** at 20k. Recency and trim never
-  see a thread long enough to run. That ~6–9% on Gutenberg is filler
-  removal, not summarization. Wikipedia monoliths are near zero
-  (see the family table).
+- **A pasted chapter gets `medium` and `high` inside the turn (0.7.3).**
+  A `rag_doc` turn over 1,500 tokens that is not the question is cut
+  to sentences that match the question, plus a lead. Monolith 8k mean
+  save is `low` **6.1%**, `medium` **57.2%** (anchor 100.0%), `high` **97.8%**. Monolith 20k `high` is **99.1%** save
+  with anchor 94.3%. `high` keeps a two-sentence lead plus matches, so passage numbers
+  fall to 0.4% at 20k.
 - **Chunk the passage and `medium` starts to move, with a wide spread.**
-  Quote the median: chunked `medium` is **5.8%** / **10.4%** / **12.3%**
-  at 2k / 8k / 20k (means 12.2%, 16.6%, 20.4%; sd 23.1 at 20k). A few works
-  where the question misses most sections pull the mean up. Anchor words
-  stay high (96.7% at 20k). Whole-passage numbers fall to 85.9% because
-  off-query sections are shortened.
+  Quote the median: chunked `medium` is **5.8%** / **10.4%** / **12.4%** at 2k / 8k / 20k (means 12.2%, 16.6%, 20.4%; sd 23.1 at 20k). A few works where the question
+  misses most sections pull the mean up. Anchor words stay high (96.7% at 20k). Whole-passage numbers
+  fall to 85.9% because off-query
+  sections are shortened.
 - **`low` is filler, not summarization.**
-  Chunked 8k `low` mean save is **7.0%** with numbers still 100.0%.
-  Repetition is small and uneven (it shows up at 8k and not at 20k in this run).
+  Chunked 8k `low` mean save is **7.0%**
+  with numbers still 100.0%. Repetition
+  is small and uneven (it shows up at 8k and not at 20k in this run).
 - **`high` is a middle-cut, and it can delete the section you asked about.**
   Chunked `high` mean save rises **55.4%** → **67.1%** → **85.3%**
   as the passage grows, almost all of it from trim. Anchor retention
@@ -167,9 +167,9 @@ strips (`very`, `quite`, `rather`). Encyclopedia extracts mostly do not.
   retention on `high` is 43.7% at 8k and 37.7% at 20k. At chunked 8k `high`,
   fiction keeps about 1% of passage numbers and nonfiction about 65%:
   novels have few figures, and trim drops the sections that held them.
-- **Use this corpus for the document claim, and the 222-item study for chat.**
-  Quoting only the chat headline understates chunked `high` and
-  overstates what a single pasted chapter will save.
+- **Use this corpus for a pasted chapter, and the 222-item study for chat.**
+  On a pasted chapter, `low` is still about 6%. `medium` and `high`
+  now cut inside that one turn. Chunked `high` is still a middle-cut.
 
 ## How to read this
 
@@ -177,9 +177,11 @@ strips (`very`, `quite`, `rather`). Encyclopedia extracts mostly do not.
   many sections in the window, one question at the end. Savings should
   climb with length because more of the passage sits outside the
   protected tail.
-- **Monolith** numbers are the honest ceiling for “paste a chapter into
-  one message.” If they sit near zero, that is a product gap (no
-  within-turn extractive compression), not a property of long text.
+- **Monolith `low`** is filler only. **Monolith `medium`** keeps about
+  a third of the sentences, including every sentence whose TF-IDF
+  similarity to the question is at least 0.3, plus a four-sentence
+  lead. **Monolith `high`** keeps that relevant set and a
+  two-sentence lead, so figures outside those sentences are dropped.
 - **Anchor retention** checks the sentence the question points at.
   **Number retention** checks the whole passage, including sections
   the preset is allowed to summarize or drop.
