@@ -60,77 +60,36 @@ Same Tier-1 behavior as 0.6.14. The series is faster calls and better timing, no
 | **0.7.1** | Faster alias candidate scan; cached bundled rewrite plans; per-run token-count reuse for stage stats |
 | **0.7.2** | Cached Sumy components in recency; precompiled alias turn patterns; ``tokens_per_second`` on stats |
 | **0.7.3** | `rag_doc` `medium`/`high` sentence-rank a pasted turn over 1,500 tokens. Monolith 8k `medium` **6.1% → 57.2%** save, anchor **100%**. Chunked 8k `medium` median stays **10.4%**. |
+| **0.7.4** | `rag_doc` keeps the question and the section it points at. Chunked 8k `high` anchor **69.5% → 95.5%**, save **62.8%**. Questions intact **204/204**. |
 
 Stay classical-NLP-first; keep optional LLM extras optional.
 
-## 0.7.4 – 0.7.5 — long prose, planned
+## 0.7.5 — long prose, planned
 
-**0.7.3 shipped.** A pasted `rag_doc` turn over 1,500 tokens is sentence-ranked on `medium` and `high`. The gates below for chunked threads are unchanged, because those sections stayed under 1,500 tokens. Monolith `high` now keeps **0.4%** of passage numbers at 20k; 0.7.5 must pin figures dropped from inside that turn, not only figures dropped by trim.
+**0.7.4 shipped.** On `rag_doc`, the last user turn is not rewritten, and `high` keeps the section whose best sentence matches the question. Chunked 8k `high` anchor retention is **95.5%** at **62.8%** mean save. 0.7.5 must not drop that anchor retention. Passage numbers on chunked `high` are still **49.2%** at 8k and **42.0%** at 20k. Monolith `high` still keeps **0.4%** of passage numbers at 20k. Pin figures dropped inside a long turn and by trim.
 
 The chat fidelity study (222 items) is the wrong headline for documents.
 [`benchmarks/LONGFORM.md`](benchmarks/LONGFORM.md) is the baseline 0.7.4 and
 0.7.5 have to beat. Profile is `rag_doc`. Same machine, same script
 (`python -m benchmarks.run_longform`).
 
-Measured on 12 public-domain / CC BY-SA works after 0.7.3 (204 compressions):
+Measured on 12 public-domain / CC BY-SA works after 0.7.4 (204 compressions):
 
 | Job | What happened |
 |-----|----------------|
 | **Monolith `low`** | Still filler. **6.1%** mean save at 8k, numbers **100%**. Gutenberg **8.8%**, Wikipedia **0.6%**. |
 | **Monolith `medium`** | **57.2%** mean save at 8k, anchor words **100%**, passage numbers **26.7%**. |
 | **Monolith `high`** | **99.1%** mean save at 20k, anchor **94.3%**, passage numbers **0.4%**. |
-| **Chunked `medium`** | Median save **5.8% / 10.4% / 12.4%** at 2k / 8k / 20k. Unchanged by 0.7.3. |
-| **Chunked `high`** | Mean save **55.4% → 67.1% → 85.3%**. Anchor retention **46.3% / 69.5% / 43.9%**. Passage numbers **33.7% / 43.7% / 37.7%**. |
-| **Contracts** | System turn **204/204**. Question turn **186/204** (filler still rewrites the quoted question). |
-
-### 0.7.4 — Keep the question, and keep the section it points at
-
-**Problem.** Two measured failures:
-
-1. Filler edits the live question when the quoted sentence contains `very`,
-   `quite`, `rather`, and the rest of the filler list. **18 questions in 204**
-   runs were not byte-identical.
-2. Trim ignores relevance. The anchor sentence is planted in the first fifth
-   of the passage, which is usually the middle trim deletes. Chunked `high`
-   therefore saves 67–85% and often drops the only sentence the question
-   asked about (anchor retention 44–70%).
-
-**Behavior.**
-
-- On `rag_doc`, do not run filler (or any wording rewrite) on the **last user
-  turn**. `chat` and `agent` filler stay as they are, so the 222-item chat
-  table does not move.
-- On `rag_doc` trim, also keep any non-system turn whose TF-IDF similarity to
-  the question is **≥ 0.3**, using the same helper recency already uses. Then
-  drop the other middle turns and leave the existing stub. Head and tail
-  rules stay. `chat` trim is unchanged.
-- Recency’s “last three turns” rule stays. This change is trim-only.
-
-**Tests.**
-
-- Question text containing `very` and `quite` is byte-identical after
-  `rag_doc` `low` and `high`.
-- Chunked thread where the relevant section is turn 4 of 10: that turn
-  survives `high`. A clearly off-topic middle turn does not.
-- Chat fixture that previously lost a filler word in an older user turn still
-  does so (no accidental chat change).
-
-**Release gate.**
-
-- Question byte-identical: **204/204** on the longform run (today 186/204).
-- Chunked 8k `high` anchor retention: **from 69.5% to at least 90%**.
-- Chunked 8k `high` mean save: **stays at least 40%** (today 67.1%). Giving
-  back some of the trim cut is the point; falling back to the monolith’s 6%
-  is a failed design.
-- Chunked 20k `high` anchor retention: **at least 85%** (today 43.9%), mean
-  save **at least 50%** (today 85.3%).
+| **Chunked `medium`** | Median save **5.8% / 10.4% / 12.4%** at 2k / 8k / 20k. |
+| **Chunked `high`** | Mean save **38.6% → 62.8% → 80.2%**. Anchor retention **99.4% / 95.5% / 96.7%**. Passage numbers **54.4% / 49.2% / 42.0%**. |
+| **Contracts** | System turn **204/204**. Question turn **204/204**. |
 
 ### 0.7.5 — Pin figures that a lossy document preset would drop
 
 **Problem.** After 0.7.4 the asked section should survive, and the rest of a
 `high` cut should still be large. Whole-passage number retention on chunked
-`high` is still the weak number: **43.7%** at 8k and **37.7%** at 20k, and
-fiction at 8k `high` keeps about **1%**. A reviewer who says “high deletes
+`high` is still the weak number: **49.2%** at 8k and **42.0%** at 20k, and
+fiction at 8k `high` keeps about **18%**. A reviewer who says “high deletes
 the document” is describing this row. Stuffing the dropped prose back would
 erase the savings. Pinning the spans that the fidelity study already treats
 as facts does not.
@@ -160,11 +119,12 @@ as facts does not.
 
 **Release gate.**
 
-- Chunked 8k `high` number retention: **from 43.7% to at least 80%**, mean
-  save **at least 50%** (today 67.1%, and 0.7.4 may already have lowered it).
-- Chunked 20k `high` number retention: **from 37.7% to at least 80%**, mean
-  save **at least 45%**.
-- Anchor retention must not fall relative to the 0.7.4 longform table.
+- Chunked 8k `high` number retention: **from 49.2% to at least 80%**, mean
+  save **at least 50%** (today 62.8%).
+- Chunked 20k `high` number retention: **from 42.0% to at least 80%**, mean
+  save **at least 45%** (today 80.2%).
+- Anchor retention must stay at least **95.5%** at chunked 8k `high` and
+  **96.7%** at chunked 20k `high`.
 - Re-publish `benchmarks/LONGFORM.md` in the same commit as the tag. The
   222-item chat headline in the README stays, with a pointer at this study,
   until a later docs pass. Do not replace the chat numbers with these.

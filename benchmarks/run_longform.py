@@ -46,11 +46,18 @@ REPORT = ROOT / "LONGFORM.md"
 if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
+from benchmarks.facts import (  # noqa: E402
+    FILLER_TOKENS,
+    fact_adjusted,
+    names,
+    names_kept,
+    pooled_loss,
+)
 from contextpress import ContextManager  # noqa: E402
 
 UA = {
     "User-Agent": (
-        "contextpress-longform-benchmark/0.7.3 "
+        "contextpress-longform-benchmark/0.7.4 "
         "(local research; +https://github.com/Taha-azizi/contextpress)"
     )
 }
@@ -310,8 +317,9 @@ def _run_one(
     result = cm.compress(messages, token_budget=None, return_stats=True)
     elapsed = (time.perf_counter() - t0) * 1000.0
     out_body = _body_text(result.messages, question)
-    words = _content_words(anchor)
+    words = [w for w in _content_words(anchor) if w not in FILLER_TOKENS]
     nums = _NUM.findall(passage)
+    found_names = names(passage)
     # Unique spans, stable order.
     uniq_nums = list(dict.fromkeys(nums))
     stats = result.stats
@@ -345,6 +353,8 @@ def _run_one(
         else None,
         "numbers_total": len(uniq_nums),
         "numbers_retained": sum(1 for n in uniq_nums if n in out_body),
+        "names_total": len(found_names),
+        "names_retained": names_kept(found_names, out_body),
         "number_retention_pct": round(
             100.0 * sum(1 for n in uniq_nums if n in out_body) / len(uniq_nums), 2
         )
@@ -394,6 +404,24 @@ def _cell(rows: list[dict[str, Any]], *, packing: str, length: str, preset: str)
         "question_ok": sum(1 for r in sub if r["question_intact"]),
         "system_ok": sum(1 for r in sub if r["system_intact"]),
     }
+
+
+_FACT_PAIRS = (
+    ("anchor_retained", "anchor_words"),
+    ("numbers_retained", "numbers_total"),
+    ("names_retained", "names_total"),
+)
+
+
+def _kpi_bits(sub: list[dict[str, Any]]) -> tuple[str, str, str]:
+    if not sub:
+        return "—", "—", "—"
+    save = statistics.fmean(float(r["token_savings_pct"]) for r in sub)
+    loss = pooled_loss(sub, _FACT_PAIRS)
+    combo = None if loss is None else fact_adjusted(save, loss)
+    return _fmt(round(save, 1), "%"), _fmt(None if loss is None else round(loss, 1), "%"), _fmt(
+        None if combo is None else round(combo, 1), "%"
+    )
 
 
 def _fmt(v: float | None, suffix: str = "") -> str:
@@ -481,17 +509,16 @@ def _findings(rows: list[dict[str, Any]]) -> list[str]:
         f"  Chunked 8k `low` mean save is **{_fmt(ch8l['mean_save'], '%')}**",
         f"  with numbers still {_fmt(ch8l['mean_numbers'], '%')}. Repetition",
         "  is small and uneven (it shows up at 8k and not at 20k in this run).",
-        "- **`high` is a middle-cut, and it can delete the section you asked about.**",
-        f"  Chunked `high` mean save rises **{_fmt(ch2h['mean_save'], '%')}** → "
-        f"**{_fmt(ch8h['mean_save'], '%')}** → **{_fmt(ch20h['mean_save'], '%')}**",
-        "  as the passage grows, almost all of it from trim. Anchor retention",
-        f"  is only {_fmt(ch2h['mean_anchor'], '%')} at 2k and "
-        f"{_fmt(ch20h['mean_anchor'], '%')} at 20k, because the anchor sits in",
-        "  the first fifth and trim keeps a short head plus the tail. Number",
-        f"  retention on `high` is {_fmt(ch8h['mean_numbers'], '%')} at 8k and "
-        f"{_fmt(ch20h['mean_numbers'], '%')} at 20k. At chunked 8k `high`,",
-        "  fiction keeps about 1% of passage numbers and nonfiction about 65%:",
-        "  novels have few figures, and trim drops the sections that held them.",
+        "- **Chunked `high` still drops the middle, and keeps the asked section.**",
+        f"  Mean save rises **{_fmt(ch2h['mean_save'], '%')}** → "
+        f"**{_fmt(ch8h['mean_save'], '%')}** → **{_fmt(ch20h['mean_save'], '%')}**.",
+        "  Trim also keeps a section whose best sentence matches the question.",
+        f"  Anchor retention is {_fmt(ch2h['mean_anchor'], '%')} at 2k, "
+        f"{_fmt(ch8h['mean_anchor'], '%')} at 8k, and "
+        f"{_fmt(ch20h['mean_anchor'], '%')} at 20k.",
+        f"  Passage numbers kept are {_fmt(ch8h['mean_numbers'], '%')} at 8k and "
+        f"{_fmt(ch20h['mean_numbers'], '%')} at 20k. Figures outside that",
+        "  section are still dropped.",
         "- **Use this corpus for a pasted chapter, and the 222-item study for chat.**",
         "  On a pasted chapter, `low` is still about 6%. `medium` and `high`",
         "  now cut inside that one turn. Chunked `high` is still a middle-cut.",
@@ -559,11 +586,11 @@ def _write_report(
             "",
             "## Headline",
             "",
-            "Mean token savings across works. Anchor retention is the share of",
-            "the question’s source sentence still present as whole words. Number",
-            "retention is the share of distinct numbers from the **whole** passage",
-            "that survive — on `medium`/`high` a drop here is expected when",
-            "off-query sections are summarized or cut.",
+            "Every row reports **token save**, **information loss**, and",
+            "**adjusted save** (`token save − information loss`).",
+            "Information loss pools the asked sentence (filler words excluded),",
+            "numbers, and same-line two-word names. Anchor and number columns",
+            "are the parts of that loss.",
             "",
         ]
     )
@@ -584,20 +611,45 @@ def _write_report(
                 blurb,
                 "",
                 (
-                    "| length | preset | n | mean save | median save | sd "
-                    "| anchor words kept | numbers kept | median ms |"
+                    "| length | preset | n | token save | info loss | adjusted save "
+                    "| anchor kept | numbers kept | names kept |"
                 ),
                 "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
             ]
         )
         for length, _n in LENGTHS:
             for preset in PRESETS:
-                c = _cell(rows, packing=packing, length=length, preset=preset)
+                sub = [
+                    r
+                    for r in rows
+                    if r["packing"] == packing and r["length"] == length and r["preset"] == preset
+                ]
+                save_s, loss_s, combo_s = _kpi_bits(sub)
+                anchor = _fmt(
+                    _mean(
+                        [
+                            100.0 * r["anchor_retained"] / r["anchor_words"]
+                            for r in sub
+                            if r["anchor_words"]
+                        ]
+                    ),
+                    "%",
+                )
+                numbers = _fmt(
+                    _mean(
+                        [
+                            100.0 * r["numbers_retained"] / r["numbers_total"]
+                            for r in sub
+                            if r["numbers_total"]
+                        ]
+                    ),
+                    "%",
+                )
+                name_pct = pooled_loss(sub, (("names_retained", "names_total"),))
+                names_kept_pct = None if name_pct is None else round(100.0 - name_pct, 1)
                 row = (
-                    f"| {length} | `{preset}` | {c['n']} | "
-                    f"{_fmt(c['mean_save'], '%')} | {_fmt(c['median_save'], '%')} | "
-                    f"{_fmt(c['sd_save'])} | {_fmt(c['mean_anchor'], '%')} | "
-                    f"{_fmt(c['mean_numbers'], '%')} | {_fmt(c['median_ms'])} |"
+                    f"| {length} | `{preset}` | {len(sub)} | {save_s} | {loss_s} | "
+                    f"{combo_s} | {anchor} | {numbers} | {_fmt(names_kept_pct, '%')} |"
                 )
                 lines.append(row)
 
@@ -609,7 +661,7 @@ def _write_report(
             "",
             "## Fiction vs nonfiction (chunked, 8k tokens)",
             "",
-            "| kind | preset | n | mean save | anchor kept | numbers kept |",
+            "| kind | preset | n | token save | info loss | adjusted save |",
             "| --- | --- | ---: | ---: | ---: | ---: |",
         ]
     )
@@ -623,20 +675,9 @@ def _write_report(
                 and r["length"] == "8k"
                 and r["preset"] == preset
             ]
-            saves = [float(r["token_savings_pct"]) for r in sub]
-            anc = [
-                float(r["anchor_retention_pct"])
-                for r in sub
-                if r["anchor_retention_pct"] is not None
-            ]
-            nums = [
-                float(r["number_retention_pct"])
-                for r in sub
-                if r["number_retention_pct"] is not None
-            ]
+            save_s, loss_s, combo_s = _kpi_bits(sub)
             lines.append(
-                f"| {kind} | `{preset}` | {len(sub)} | {_fmt(_mean(saves), '%')} | "
-                f"{_fmt(_mean(anc), '%')} | {_fmt(_mean(nums), '%')} |"
+                f"| {kind} | `{preset}` | {len(sub)} | {save_s} | {loss_s} | {combo_s} |"
             )
 
     # Contracts
@@ -651,7 +692,7 @@ def _write_report(
             "the stage strips (`very`, `quite`, `rather`). Encyclopedia extracts",
             "mostly do not. `medium` and `high` no longer stay on this row.",
             "",
-            "| family | n | mean save | anchor kept | numbers kept |",
+            "| family | n | token save | info loss | adjusted save |",
             "| --- | ---: | ---: | ---: | ---: |",
         ]
     )
@@ -664,17 +705,8 @@ def _write_report(
             and r["length"] == "8k"
             and r["preset"] == "low"
         ]
-        saves = [float(r["token_savings_pct"]) for r in sub]
-        anc = [
-            float(r["anchor_retention_pct"]) for r in sub if r["anchor_retention_pct"] is not None
-        ]
-        nums = [
-            float(r["number_retention_pct"]) for r in sub if r["number_retention_pct"] is not None
-        ]
-        lines.append(
-            f"| {family} | {len(sub)} | {_fmt(_mean(saves), '%')} | "
-            f"{_fmt(_mean(anc), '%')} | {_fmt(_mean(nums), '%')} |"
-        )
+        save_s, loss_s, combo_s = _kpi_bits(sub)
+        lines.append(f"| {family} | {len(sub)} | {save_s} | {loss_s} | {combo_s} |")
 
     lines.extend(
         [
@@ -683,9 +715,8 @@ def _write_report(
             "",
             f"- Question turn byte-identical: **{len(rows) - len(q_bad)}/{len(rows)}**.",
             f"- System turn byte-identical: **{len(rows) - len(s_bad)}/{len(rows)}**.",
-            "- When the question changes, filler has rewritten a discourse word",
-            "  inside the quoted anchor (`very`, `quite`, `rather`, and the rest",
-            "  of the filler list). The live question is not protected.",
+            "- On `rag_doc`, filler does not rewrite the last user turn, so a",
+            "  quoted question that contains `very` or `quite` stays intact.",
             "",
             "## What the numbers say",
             "",

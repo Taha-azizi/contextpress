@@ -42,6 +42,12 @@ Long continuous text (books and encyclopedia extracts, not chats), monolith vs c
 python -m benchmarks.run_longform
 ```
 
+Richer cut of the same job — more domains, 4k–32k, early/middle/late questions. Every table reports token save, information loss, and adjusted save (`token save − information loss`): [`RICH.md`](RICH.md).
+
+```bash
+python -m benchmarks.run_rich
+```
+
 Jev (OpenRouter System One) vs raw, on BoolQ-RAG + QuALITY: [`JEV_STUDY.md`](JEV_STUDY.md).
 
 ```bash

@@ -46,6 +46,7 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from benchmarks.corpus import load_corpus  # noqa: E402
+from benchmarks.facts import fact_adjusted  # noqa: E402
 from contextpress import ContextManager  # noqa: E402
 from contextpress.text_sim import tfidf_cosine  # noqa: E402
 
@@ -366,16 +367,22 @@ def write_report(
         "",
         "## Headline (all items)",
         "",
-        "| preset | mean token save | mean **critical** info loss | "
-        "weighted critical loss | mean soft info loss | critical retained |",
-        "| --- | --- | --- | --- | --- | --- |",
+        "The three benchmark KPIs are **token save**, **information loss** "
+        "(weighted critical-fact loss: numbers, URLs, paths, ids), and "
+        "**adjusted save** = `token save − information loss`.",
+        "",
+        "| preset | token save | info loss | adjusted save | mean critical loss | "
+        "soft loss | facts kept |",
+        "| --- | ---: | ---: | ---: | ---: | ---: | ---: |",
     ]
     for p in PRESETS:
         a = summary["overall"][p]
+        save = float(a["mean_token_savings_pct"])
+        loss = float(a["weighted_critical_info_loss_pct"])
         lines.append(
-            f"| `{p}` | {_fmt(a['mean_token_savings_pct'])} | "
-            f"**{_fmt(a['mean_critical_info_loss_pct'])}** | "
-            f"{_fmt(a['weighted_critical_info_loss_pct'])} | "
+            f"| `{p}` | {_fmt(save)} | **{_fmt(loss)}** | "
+            f"**{_fmt(fact_adjusted(save, loss))}** | "
+            f"{_fmt(a['mean_critical_info_loss_pct'])} | "
             f"{_fmt(a['mean_soft_info_loss_pct'])} | "
             f"{_fmt(a['mean_critical_retention_pct'])} |"
         )
@@ -392,11 +399,14 @@ def write_report(
     for p in PRESETS:
         a = summary["overall"][p]
         c = summary["chat_only"][p]
-        preserve = 100.0 - float(a["weighted_critical_info_loss_pct"] or 0.0)
+        save = float(a["mean_token_savings_pct"])
+        loss = float(a["weighted_critical_info_loss_pct"] or 0.0)
+        preserve = 100.0 - loss
         lines.append(
-            f"- **`{p}`**: about **{_fmt(a['mean_token_savings_pct'], 1)}** tokens saved, "
-            f"**{_fmt(a['weighted_critical_info_loss_pct'], 1)}** critical-information "
-            f"loss (**{preserve:.1f}%** of factoids retained). "
+            f"- **`{p}`**: **{_fmt(save, 1)}** token save, "
+            f"**{_fmt(loss, 1)}** information loss, "
+            f"**{_fmt(fact_adjusted(save, loss), 1)}** adjusted save "
+            f"({preserve:.1f}% of factoids retained). "
             f"Soft/bulk wording loss ≈ {_fmt(a['mean_soft_info_loss_pct'], 1)}."
         )
         lines.append(
@@ -410,22 +420,26 @@ def write_report(
             "",
             "## Chat-only (long threads — main product story)",
             "",
-            "| preset | mean token save | mean critical loss | median critical loss | "
-            "mean soft loss | system OK | last-user OK |",
-            "| --- | --- | --- | --- | --- | --- | --- |",
+            "| preset | token save | info loss | adjusted save | median critical loss | "
+            "soft loss | system OK | last-user OK |",
+            "| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |",
         ]
     )
     for p in PRESETS:
         a = summary["chat_only"][p]
+        save = float(a["mean_token_savings_pct"])
+        loss = float(a["weighted_critical_info_loss_pct"])
         lines.append(
-            f"| `{p}` | {_fmt(a['mean_token_savings_pct'])} | "
-            f"**{_fmt(a['mean_critical_info_loss_pct'])}** | "
+            f"| `{p}` | {_fmt(save)} | **{_fmt(loss)}** | "
+            f"**{_fmt(fact_adjusted(save, loss))}** | "
             f"{_fmt(a['median_critical_info_loss_pct'])} | "
             f"{_fmt(a['mean_soft_info_loss_pct'])} | "
             f"{a['system_ok_rate']}% | {a['last_user_ok_rate']}% |"
         )
 
-    lines.extend(["", "## By bucket × preset (mean token save → **weighted** critical loss)", ""])
+    lines.extend(
+        ["", "## By bucket × preset (token save / info loss / adjusted save)", ""]
+    )
     lines.append("| bucket | n | low | medium | high |")
     lines.append("| --- | --- | --- | --- | --- |")
     for bucket, presets in summary["by_bucket"].items():
@@ -433,9 +447,10 @@ def write_report(
         cells = [bucket, str(n_items)]
         for p in PRESETS:
             a = presets[p]
+            save = float(a["mean_token_savings_pct"])
+            loss = float(a["weighted_critical_info_loss_pct"])
             cells.append(
-                f"{_fmt(a['mean_token_savings_pct'], 1)} → "
-                f"{_fmt(a['weighted_critical_info_loss_pct'], 1)}"
+                f"{_fmt(save, 1)} / {_fmt(loss, 1)} / {_fmt(fact_adjusted(save, loss), 1)}"
             )
         lines.append("| " + " | ".join(cells) + " |")
 
@@ -496,7 +511,26 @@ def main() -> int:
         default=0,
         help="optional cap on corpus items (0 = all)",
     )
+    parser.add_argument(
+        "--from-jsonl",
+        action="store_true",
+        help="rebuild the report from benchmarks/results/info_fidelity.jsonl",
+    )
     args = parser.parse_args()
+    if args.from_jsonl:
+        path = RESULTS / "info_fidelity.jsonl"
+        text = path.read_text(encoding="utf-8")
+        rows = [json.loads(line) for line in text.splitlines() if line.strip()]
+        ids = sorted({r["id"] for r in rows})
+        items = [{"id": item_id} for item_id in ids]
+        elapsed = 0.0
+        summary_path = RESULTS / "info_fidelity_summary.json"
+        if summary_path.exists():
+            stored = json.loads(summary_path.read_text(encoding="utf-8"))
+            elapsed = float(stored.get("elapsed_s") or 0)
+        write_report(rows=rows, items=items, elapsed_s=elapsed)
+        print(f"wrote {REPORT} from {path}")
+        return 0
     items, errors = load_corpus(refresh=False)
     if args.limit and args.limit > 0:
         items = items[: args.limit]

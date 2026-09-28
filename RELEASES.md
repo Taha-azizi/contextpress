@@ -2,7 +2,7 @@
 
 Versions are **[SemVer](https://semver.org/)**. The canonical changelog is [`CHANGELOG.md`](CHANGELOG.md). This file is the GitHub-style narrative for maintainers cutting tags.
 
-**Current package version:** `0.7.3`
+**Current package version:** `0.7.4`
 
 Sources that must match before a PyPI upload (CI runs `python scripts/check_version.py`):
 
@@ -16,6 +16,24 @@ Sources that must match before a PyPI upload (CI runs `python scripts/check_vers
 | PyPI | `pip index versions contextpress` |
 
 Do not retag `main`/`dev` from a machine that has not verified the table above.
+
+---
+
+## 0.7.4 — 2026-09-27
+
+### Why this release
+
+On chunked documents, `high` deleted the middle of the passage, which is often the section the question asked about. Filler also rewrote filler words inside that question.
+
+### Changes
+
+- `rag_doc` filler leaves the last user turn unchanged.
+- `rag_doc` trim keeps a middle turn when its best sentence has TF-IDF cosine ≥ 0.3 against that question, then still drops the other middle turns.
+- Chat and agent behavior is unchanged.
+
+On the 12-work long-prose corpus, the question is byte-identical in **204/204** runs. Chunked 8k `high` anchor retention went from **69.5% to 95.5%** while mean save stayed at **62.8%** (floor was 40%). Chunked 20k `high` anchor retention went from **43.9% to 96.7%** with mean save **80.2%** (floor was 50%).
+
+Tag: `v0.7.4` (local until published)
 
 ---
 

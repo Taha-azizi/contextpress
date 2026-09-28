@@ -12,6 +12,8 @@ CONTEXTPRESS BEHAVIOR CONTRACT
 5. Last 2 non-system turns are NEVER removed by budget.
 6. Trim never removes system turns, the opening non-system turns, or the last 3
    non-system turns. Tool call/result groups that fall in the dropped span are kept.
+   On ``rag_doc``, trim also keeps a turn whose best sentence has TF-IDF cosine
+   >= 0.3 against the last user turn.
 7. Resolution requires BOTH sides in chat mode. One side is not enough.
 8. In repetition detection, the MORE RECENT turn ALWAYS wins.
 9. Tier 1 (no LLM) behavior is ALWAYS deterministic. Tests must pass consistently.
@@ -29,6 +31,7 @@ CONTEXTPRESS BEHAVIOR CONTRACT
     phrases to digits. None of those three are in low/medium/high presets.
 15. Abbrev and alias never mutate system / JSON / tool turns. Alias only fires
     for phrases that repeat 3+ times in the conversation (chat/agent).
+16. On ``rag_doc``, filler does not rewrite the last user turn.
 """
 
 from __future__ import annotations

@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
 
+## [0.7.4] - 2026-09-27
+
+- **Question** — on `rag_doc`, filler does not rewrite the last user turn. A question that quotes `very` or `quite` stays byte-identical. Chat and agent filler are unchanged.
+- **Trim** — on `rag_doc` `high`, a middle section is kept when its best sentence scores at least 0.3 against the question. Head, tail, and chat trim are unchanged. Whole-turn similarity at 0.3 matches most literary sections, so the check is the best sentence inside the section.
+- **Measured** — long-prose questions intact **204/204** (was 186/204). Chunked 8k `high`: mean save **62.8%** (was 67.1%), anchor words **95.5%** (was 69.5%). Chunked 20k `high`: mean save **80.2%** (was 85.3%), anchor words **96.7%** (was 43.9%). Passage numbers outside the kept section are still dropped.
+
 ## [0.7.3] - 2026-09-27
 
 - **Long passages** — on `rag_doc` `medium` and `high`, a turn longer than 1,500 tokens that is not the last user turn is reduced to sentences matching the question (TF-IDF cosine ≥ 0.3) plus a lead. `medium` also fills to about one third of the sentences. `high` keeps a two-sentence lead. `low`, `chat`, and `agent` are unchanged. Turns at or under 1,500 tokens stay on the previous recency path, so chunked sections are not sentence-ranked.

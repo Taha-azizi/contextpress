@@ -294,6 +294,13 @@ def _remove_fillers_text(text: str) -> str:
     return _cleanup_after_filler(s)
 
 
+def _last_user_index(turns: list) -> int | None:
+    for index in range(len(turns) - 1, -1, -1):
+        if turns[index].role == "user":
+            return index
+    return None
+
+
 def _is_acknowledgement_only(text: str) -> bool:
     t = text.strip().lower().rstrip(".!?")
     if not t:
@@ -315,8 +322,12 @@ class FillerStrategy(BaseStrategy):
         self.role_aware = role_aware
 
     def process(self, conversation: Conversation) -> Conversation:
+        last_user = _last_user_index(conversation.turns) if self.conv_type == "rag_doc" else None
         new_turns: list[Turn] = []
-        for turn in conversation.turns:
+        for index, turn in enumerate(conversation.turns):
+            if self.conv_type == "rag_doc" and index == last_user:
+                new_turns.append(clone_turn(turn))
+                continue
             if self._is_protected(turn) or preserve_structured_turn(turn):
                 new_turns.append(clone_turn(turn))
                 continue
