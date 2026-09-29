@@ -12,7 +12,7 @@
 - **Measured tradeoffs** — **222** local workloads, mostly chat ([method](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/INFO_FIDELITY.md)): `low` **6.0%** token save / **1.6%** critical-fact loss; `medium` **22.7%** / **15.2%**; `high` **47.7%** / **27.3%** (weighted critical loss). Long prose is a separate study ([`benchmarks/LONGFORM.md`](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/LONGFORM.md)): a pasted 8k chapter saves **6.1%** on `low` and **57.2%** on `medium` (anchor words **100%**). Chunked 8k `high` saves **62.8%** and keeps **95.5%** of the asked sentence. The question turn is byte-identical in **204/204** runs.
 - **0.7.4 keeps the asked section** — on `rag_doc`, the question is not rewritten, and `high` keeps the section that matches it. Chunked 8k `high`: **62.8%** token save with **95.5%** of the asked sentence kept ([study](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/LONGFORM.md)).
 
-Created and maintained by **[Taha Azizi](https://github.com/Taha-azizi)**. **Write-up:** [Introducing contextpress](https://pub.towardsai.net/introducing-contextpress-the-python-library-that-refactors-your-llm-context-c57965617edb) (Towards AI).
+Created and maintained by **[Taha Azizi](https://github.com/Taha-azizi)**. Long-form write-ups: [Articles (Towards AI)](#articles-towards-ai).
 
 ## Install
 
@@ -468,6 +468,14 @@ Long chat histories inflate token usage, bury important facts (lost-in-the-middl
 - **scikit-learn** — TF-IDF vectors and cosine similarity for repetition and RAG relevance.
 - **sumy** — Extractive summarization for the recency stage.
 - **tiktoken** — Token-accurate budgeting aligned with common model encodings.
+
+## Articles (Towards AI)
+
+Measurement, presets, and real-world billing — published on [Towards AI](https://towardsai.net/):
+
+1. [Introducing contextpress: the Python library that refactors your LLM context](https://pub.towardsai.net/introducing-contextpress-the-python-library-that-refactors-your-llm-context-c57965617edb) — Tier 1/Tier 2 design and where to use `chat`, `rag_doc`, and `agent`.
+2. [Cut your LLM token costs for free with contextpress](https://pub.towardsai.net/cut-your-llm-token-costs-for-free-with-contextpress-3860fabaafe3) — the **222-item** fidelity benchmark (token save vs critical-fact loss) and how to pick a preset.
+3. [Cut your Jev bill linearly with contextpress](https://pub.towardsai.net/cut-your-jev-bill-linearly-with-contextpress-f6731fbc076d) — **800** billed Jev calls on BoolQ + QuALITY (invoice save vs decision accuracy).
 
 ## Research and citing
 
