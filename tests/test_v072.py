@@ -16,6 +16,10 @@ def test_recency_cached_sumy_components_match_fresh() -> None:
     from sumy.parsers.plaintext import PlaintextParser
     from sumy.summarizers.lsa import LsaSummarizer
 
+    from contextpress._bootstrap import bootstrap_nltk
+
+    bootstrap_nltk()  # CI has no NLTK data; the fresh Tokenizer below needs it
+
     text = (
         "The Apollo program was conceived during the presidency of Dwight D. Eisenhower. "
         "It was later dedicated to President John F. Kennedy's national goal of landing "

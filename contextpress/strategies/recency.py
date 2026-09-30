@@ -24,6 +24,9 @@ _SUMY_SUMMARIZER = None
 def _get_sumy_components():
     global _SUMY_TOKENIZER, _SUMY_SUMMARIZER
     if _SUMY_TOKENIZER is None or _SUMY_SUMMARIZER is None:
+        from contextpress._bootstrap import bootstrap_nltk
+
+        bootstrap_nltk()
         from sumy.nlp.tokenizers import Tokenizer
         from sumy.summarizers.lsa import LsaSummarizer
 
