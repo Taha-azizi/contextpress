@@ -69,28 +69,28 @@ are the parts of that loss.
 | length | preset | n | token save | info loss | adjusted save | anchor kept | numbers kept | names kept |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 2k | `low` | 12 | 3.9% | 0.3% | 3.6% | 99.4% | 100.0% | 100.0% |
-| 2k | `medium` | 12 | 12.2% | 4.3% | 7.8% | 99.4% | 94.4% | 93.9% |
-| 2k | `high` | 12 | 38.6% | 20.4% | 18.2% | 99.4% | 54.4% | 68.4% |
+| 2k | `medium` | 12 | 12.1% | 2.5% | 9.6% | 99.4% | 100.0% | 93.9% |
+| 2k | `high` | 12 | 38.1% | 11.5% | 26.6% | 99.4% | 100.0% | 68.4% |
 | 8k | `low` | 12 | 7.0% | 1.2% | 5.8% | 96.4% | 100.0% | 98.5% |
-| 8k | `medium` | 12 | 16.6% | 18.0% | -1.3% | 96.4% | 76.6% | 82.8% |
-| 8k | `high` | 12 | 62.8% | 49.1% | 13.7% | 95.2% | 49.2% | 44.7% |
+| 8k | `medium` | 12 | 16.4% | 11.1% | 5.4% | 96.4% | 98.2% | 82.8% |
+| 8k | `high` | 12 | 62.4% | 33.9% | 28.5% | 95.2% | 95.6% | 44.7% |
 | 20k | `low` | 10 | 6.1% | 0.4% | 5.7% | 96.3% | 100.0% | 99.9% |
-| 20k | `medium` | 10 | 22.0% | 10.0% | 12.0% | 96.3% | 85.9% | 92.7% |
-| 20k | `high` | 10 | 80.2% | 60.7% | 19.5% | 96.3% | 42.0% | 33.3% |
+| 20k | `medium` | 10 | 22.0% | 6.0% | 15.9% | 96.3% | 98.1% | 92.7% |
+| 20k | `high` | 10 | 80.0% | 48.4% | 31.6% | 96.3% | 94.1% | 33.3% |
 
 ### Single pasted passage (monolith)
 
 | length | preset | n | token save | info loss | adjusted save | anchor kept | numbers kept | names kept |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
 | 2k | `low` | 12 | 6.1% | 0.3% | 5.8% | 99.4% | 100.0% | 100.0% |
-| 2k | `medium` | 12 | 54.4% | 28.8% | 25.6% | 99.4% | 53.7% | 48.2% |
-| 2k | `high` | 12 | 91.2% | 51.4% | 39.8% | 99.4% | 1.8% | 5.3% |
+| 2k | `medium` | 12 | 53.8% | 18.6% | 35.3% | 99.4% | 100.0% | 48.2% |
+| 2k | `high` | 12 | 90.2% | 33.7% | 56.5% | 99.4% | 100.0% | 5.3% |
 | 8k | `low` | 12 | 6.1% | 0.1% | 6.0% | 100.0% | 100.0% | 99.8% |
-| 8k | `medium` | 12 | 57.2% | 50.1% | 7.0% | 100.0% | 26.7% | 48.5% |
-| 8k | `high` | 12 | 97.8% | 82.3% | 15.5% | 100.0% | 0.7% | 1.5% |
+| 8k | `medium` | 12 | 56.6% | 30.3% | 26.2% | 100.0% | 96.6% | 48.5% |
+| 8k | `high` | 12 | 97.1% | 56.5% | 40.6% | 100.0% | 95.4% | 1.5% |
 | 20k | `low` | 10 | 6.9% | 0.4% | 6.6% | 96.3% | 100.0% | 99.9% |
-| 20k | `medium` | 10 | 56.9% | 48.8% | 8.1% | 96.3% | 42.1% | 50.7% |
-| 20k | `high` | 10 | 99.1% | 90.0% | 9.1% | 93.7% | 0.4% | 2.1% |
+| 20k | `medium` | 10 | 56.6% | 35.0% | 21.6% | 96.3% | 97.5% | 50.7% |
+| 20k | `high` | 10 | 98.8% | 73.6% | 25.1% | 93.7% | 84.0% | 2.1% |
 
 ## Where the tokens go (chunked, mean tokens removed per stage)
 
@@ -109,7 +109,7 @@ stay off on this profile.
 | 8k | `medium` | 0.0 | 413.5 | 143.7 | 0.0 | 761.6 |
 | 8k | `high` | 0.0 | 413.5 | 143.7 | 4284.2 | 206.0 |
 | 20k | `low` | 0.0 | 1218.2 | 0.0 | 0.0 | 0.0 |
-| 20k | `medium` | 0.0 | 1218.2 | 0.0 | 0.0 | 3204.3 |
+| 20k | `medium` | 0.0 | 1218.2 | 0.0 | 0.0 | 3204.2 |
 | 20k | `high` | 0.0 | 1218.2 | 0.0 | 14333.7 | 294.2 |
 
 ## Fiction vs nonfiction (chunked, 8k tokens)
@@ -117,11 +117,11 @@ stay off on this profile.
 | kind | preset | n | token save | info loss | adjusted save |
 | --- | --- | ---: | ---: | ---: | ---: |
 | fiction | `low` | 5 | 7.2% | 0.3% | 6.9% |
-| fiction | `medium` | 5 | 25.5% | 44.9% | -19.4% |
-| fiction | `high` | 5 | 64.0% | 66.9% | -2.9% |
+| fiction | `medium` | 5 | 25.0% | 26.5% | -1.4% |
+| fiction | `high` | 5 | 63.5% | 47.7% | 15.8% |
 | nonfiction | `low` | 7 | 6.8% | 1.7% | 5.1% |
 | nonfiction | `medium` | 7 | 10.3% | 1.9% | 8.4% |
-| nonfiction | `high` | 7 | 62.0% | 38.5% | 23.5% |
+| nonfiction | `high` | 7 | 61.6% | 25.6% | 36.0% |
 
 ## Gutenberg vs Wikipedia (monolith, 8k)
 
@@ -146,23 +146,23 @@ mostly do not. `medium` and `high` no longer stay on this row.
 - **A pasted chapter gets `medium` and `high` inside the turn (0.7.3).**
   A `rag_doc` turn over 1,500 tokens that is not the question is cut
   to sentences that match the question, plus a lead. Monolith 8k mean
-  save is `low` **6.1%**, `medium` **57.2%** (anchor 100.0%), `high` **97.8%**. Monolith 20k `high` is **99.1%** save
+  save is `low` **6.1%**, `medium` **56.6%** (anchor 100.0%), `high` **97.1%**. Monolith 20k `high` is **98.8%** save
   with anchor 93.7%. `high` keeps a two-sentence lead plus matches, so passage numbers
-  fall to 0.4% at 20k.
+  fall to 84.0% at 20k.
 - **Chunk the passage and `medium` starts to move, with a wide spread.**
-  Quote the median: chunked `medium` is **5.8%** / **10.4%** / **12.4%** at 2k / 8k / 20k (means 12.2%, 16.6%, 22.0%; sd 26.5 at 20k). A few works where the question
+  Quote the median: chunked `medium` is **5.8%** / **10.4%** / **12.3%** at 2k / 8k / 20k (means 12.1%, 16.4%, 22.0%; sd 26.4 at 20k). A few works where the question
   misses most sections pull the mean up. Anchor words stay high (96.3% at 20k). Whole-passage numbers
-  fall to 85.9% because off-query
+  fall to 98.1% because off-query
   sections are shortened.
 - **`low` is filler, not summarization.**
   Chunked 8k `low` mean save is **7.0%**
   with numbers still 100.0%. Repetition
   is small and uneven (it shows up at 8k and not at 20k in this run).
 - **Chunked `high` still drops the middle, and keeps the asked section.**
-  Mean save rises **38.6%** → **62.8%** → **80.2%**.
+  Mean save rises **38.1%** → **62.4%** → **80.0%**.
   Trim also keeps a section whose best sentence matches the question.
   Anchor retention is 99.4% at 2k, 95.2% at 8k, and 96.3% at 20k.
-  Passage numbers kept are 49.2% at 8k and 42.0% at 20k. Figures outside that
+  Passage numbers kept are 95.6% at 8k and 94.1% at 20k. Figures outside that
   section are still dropped.
 - **Use this corpus for a pasted chapter, and the 222-item study for chat.**
   On a pasted chapter, `low` is still about 6%. `medium` and `high`

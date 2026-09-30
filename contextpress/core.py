@@ -204,6 +204,7 @@ class ContextManager:
             return_stats = True
         _validate_token_budget(token_budget)
         level = compression if compression is not None else self._compression
+        level = normalize_compression_level(level)
         profile = copy.deepcopy(self._profile)
         custom_stages = copy.deepcopy(self._custom_stages)
         apply_stage_selection(
@@ -227,6 +228,7 @@ class ContextManager:
             llm_max_summary_tokens=self.llm_max_summary_tokens,
             llm_mode=self.llm_mode,
             custom_stages=custom_stages,
+            compression_level=level,
         )
         with capture_warnings() as captured:
             out = pipeline.run(conv, stats=stats, dry_run=dry_run)

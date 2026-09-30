@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
 
+## [0.7.5] - 2026-09-29
+
+- **Pinned figures** — on `rag_doc` `medium` and `high`, critical spans dropped by trim, recency, or long-turn sentence cuts are appended once on the trim stub or a compressed turn (`Kept figures: …`, max **40** spans). Same span classes as the fidelity benchmark (URLs, paths, 3+ digit numbers, dates, ids). Chat and agent runs are unchanged.
+- **Stats** — ``CompressionStats.pinned_fact_count`` (also in ``to_dict()``).
+- **Measured** — long-prose chunked 8k `high`: mean save **62.4%**, anchor **95.2%**, passage numbers **95.6%** (was **49.2%**). Chunked 20k `high`: save **80.0%**, anchor **96.3%**, numbers **94.1%** (was **42.0%**). Questions intact **204/204**.
+
 ## [0.7.4] - 2026-09-27
 
 - **Question** — on `rag_doc`, filler does not rewrite the last user turn. A question that quotes `very` or `quite` stays byte-identical. Chat and agent filler are unchanged.

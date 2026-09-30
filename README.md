@@ -10,7 +10,8 @@
 - **Tier 1, no API key** — `ContextManager` runs deterministic NLP stages (structure, filler, repetition, recency, budget, …). Optional **Tier 2** via `llm_backend=` when you want semantic dedupe/summarize.
 - **`chat` · `rag_doc` · `agent`** — profiles tune filler, resolution, recency, and tool-turn handling for dialogue, RAG chunks, and agent threads.
 - **Measured tradeoffs** — **222** local workloads, mostly chat ([method](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/INFO_FIDELITY.md)): `low` **6.0%** token save / **1.6%** critical-fact loss; `medium` **22.7%** / **15.2%**; `high` **47.7%** / **27.3%** (weighted critical loss). Long prose is a separate study ([`benchmarks/LONGFORM.md`](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/LONGFORM.md)): a pasted 8k chapter saves **6.1%** on `low` and **57.2%** on `medium` (anchor words **100%**). Chunked 8k `high` saves **62.8%** and keeps **95.5%** of the asked sentence. The question turn is byte-identical in **204/204** runs.
-- **0.7.4 keeps the asked section** — on `rag_doc`, the question is not rewritten, and `high` keeps the section that matches it. Chunked 8k `high`: **62.8%** token save with **95.5%** of the asked sentence kept ([study](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/LONGFORM.md)).
+- **0.7.5 pins dropped figures** — on `rag_doc` `medium`/`high`, numbers and other critical spans removed by trim or sentence cuts are listed once (`Kept figures: …`, max 40). Chunked 8k `high`: **62.4%** save, **95.6%** passage numbers, **95.2%** anchor words ([study](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/LONGFORM.md)).
+- **0.7.4 keeps the asked section** — on `rag_doc`, the question is not rewritten, and `high` keeps the section that matches it.
 
 Created and maintained by **[Taha Azizi](https://github.com/Taha-azizi)**. Long-form write-ups: [Articles (Towards AI)](#articles-towards-ai).
 
@@ -453,7 +454,7 @@ Long chat histories inflate token usage, bury important facts (lost-in-the-middl
 
 ## Project status
 
-> **Actively stabilizing.** **0.6.x and 0.7.x are stable for Tier 1** (deterministic, offline NLP — no LLM required). Current release: **0.7.4** (`rag_doc` keeps the question and the section it points at).
+> **Actively stabilizing.** **0.6.x and 0.7.x are stable for Tier 1** (deterministic, offline NLP — no LLM required). Current release: **0.7.5** (`rag_doc` pins figures dropped by `medium`/`high`).
 >
 > - Tier 1 (`low` / `medium` / `high`) is the supported product surface. Behavior is covered by tests; numbers above come from the current fidelity corpus.
 > - **0.7.x** is performance and measurement (`elapsed_ms` on stats), not new compression stages.

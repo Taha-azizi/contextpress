@@ -2,7 +2,7 @@
 
 Versions are **[SemVer](https://semver.org/)**. The canonical changelog is [`CHANGELOG.md`](CHANGELOG.md). This file is the GitHub-style narrative for maintainers cutting tags.
 
-**Current package version:** `0.7.4`
+**Current package version:** `0.7.5`
 
 Sources that must match before a PyPI upload (CI runs `python scripts/check_version.py`):
 
@@ -16,6 +16,28 @@ Sources that must match before a PyPI upload (CI runs `python scripts/check_vers
 | PyPI | `pip index versions contextpress` |
 
 Do not retag `main`/`dev` from a machine that has not verified the table above.
+
+---
+
+## 0.7.5 — 2026-09-29
+
+### Why this release
+
+Chunked `high` finally kept the asked section (0.7.4) but still dropped most passage numbers sitting in trimmed or sentence-cut prose. Reviewers read that as “high deletes the document.” Re-stuffing the dropped text would erase the savings; pinning the numeric spans does not.
+
+### Changes
+
+- `rag_doc` `medium` / `high` only: after trim, recency, or long-turn cuts, missing critical spans are listed once on the trim stub or a compressed turn (`Kept figures: …`, cap **40**).
+- ``CompressionStats.pinned_fact_count`` for observability. Chat/agent stay at 0.
+- Shared span extraction lives in ``contextpress.critical_spans`` (benchmarks import the same helpers).
+
+### Measured (12-work long-prose corpus)
+
+- Chunked 8k `high`: mean save **62.4%**, anchor **95.2%**, passage numbers **95.6%** (numbers were **49.2%** on 0.7.4).
+- Chunked 20k `high`: mean save **80.0%**, anchor **96.3%**, passage numbers **94.1%** (was **42.0%**).
+- Question turn byte-identical **204/204**.
+
+Tag: `v0.7.5` (local until published)
 
 ---
 

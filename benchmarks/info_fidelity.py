@@ -48,40 +48,12 @@ if str(REPO) not in sys.path:
 from benchmarks.corpus import load_corpus  # noqa: E402
 from benchmarks.facts import fact_adjusted  # noqa: E402
 from contextpress import ContextManager  # noqa: E402
+from contextpress.critical_spans import extract_critical_spans, span_present  # noqa: E402
 from contextpress.text_sim import tfidf_cosine  # noqa: E402
 
 PRESETS = ("low", "medium", "high")
 
-_URL = re.compile(r"https?://[^\s<>\"')\]]+", re.IGNORECASE)
-_EMAIL = re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b")
-_FILE = re.compile(
-    r"\b[\w./\\-]+\.(?:py|json|md|txt|yml|yaml|toml|js|ts|tsx|jsx|go|rs|java|c|cpp|h)\b",
-    re.IGNORECASE,
-)
-# Versions (2.4.1), decimals (3.14), ISO dates, integers with 3+ digits.
-# Two-digit integers (10, 20) are too often list indexes / round numbers.
-_NUM = re.compile(r"\b\d{4}-\d{2}-\d{2}\b|" r"\b\d+\.\d+(?:\.\d+)*\b|" r"\b\d{3,}\b")
-_SNAKE = re.compile(r"\b[A-Za-z][A-Za-z0-9]*(?:_[A-Za-z0-9]+)+\b")
-_CAMEL = re.compile(r"\b[A-Z][a-z]+(?:[A-Z][a-z0-9]+)+\b")
 _WORD = re.compile(r"[A-Za-z]{5,}")
-_TRAIL_PUNCT = re.compile(r"[.,;:)+]+$")
-# Discourse / product names that CamelCase regex hits but are not thread facts.
-_CAMEL_SKIP = frozenset(
-    {
-        "chatgpt",
-        "openai",
-        "youtube",
-        "github",
-        "javascript",
-        "typescript",
-        "postgresql",
-        "mongodb",
-        "graphql",
-        "linkedin",
-        "facebook",
-        "whatsapp",
-    }
-)
 
 
 def _percentile(values: list[float], p: float) -> float | None:
@@ -114,44 +86,6 @@ def _message_text(messages: list[dict[str, Any]], *, include_system: bool = True
     return "\n".join(parts)
 
 
-def _clean_span(span: str) -> str:
-    return _TRAIL_PUNCT.sub("", (span or "").strip())
-
-
-def extract_critical_spans(text: str) -> list[str]:
-    """High-signal factoids: URLs, emails, paths, versions/large numbers, identifiers.
-
-    Intentionally excludes short quotes and 1–2 digit integers — those were
-    mostly filler/discourse false positives (``I'm sorry``, ``20``).
-    """
-    found: list[str] = []
-    for pattern in (_URL, _EMAIL, _FILE, _NUM, _SNAKE, _CAMEL):
-        found.extend(pattern.findall(text))
-    seen: set[str] = set()
-    out: list[str] = []
-    for span in found:
-        cleaned = _clean_span(span)
-        key = cleaned.casefold()
-        if len(key) < 2 or key in seen:
-            continue
-        if key in _CAMEL_SKIP:
-            continue
-        seen.add(key)
-        out.append(cleaned)
-    return out
-
-
-def _span_present(span: str, haystack_cf: str) -> bool:
-    """True if ``span`` still occurs; digits cannot hide inside a longer number."""
-    key = span.casefold()
-    if not key:
-        return False
-    if "://" in key or "@" in key or "/" in key or "\\" in key:
-        return key in haystack_cf
-    # Allow hyphen neighbors (evt-001) but not 8080 inside 80800.
-    return re.search(rf"(?<![0-9a-z]){re.escape(key)}(?![0-9a-z])", haystack_cf) is not None
-
-
 def critical_retention(original: str, compressed: str) -> dict[str, Any]:
     spans = extract_critical_spans(original)
     if not spans:
@@ -166,7 +100,7 @@ def critical_retention(original: str, compressed: str) -> dict[str, Any]:
     retained = 0
     lost: list[str] = []
     for span in spans:
-        if _span_present(span, blob):
+        if span_present(span, blob):
             retained += 1
         elif len(lost) < 5:
             lost.append(span)

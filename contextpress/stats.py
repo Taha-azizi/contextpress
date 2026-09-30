@@ -105,6 +105,7 @@ class CompressionStats:
     estimated_output_cost_usd: float | None = None
     estimated_total_cost_before_usd: float | None = None
     estimated_total_cost_after_usd: float | None = None
+    pinned_fact_count: int = 0
 
     @property
     def turns_removed(self) -> int:
@@ -235,6 +236,7 @@ class CompressionStats:
             "estimated_output_cost_usd": self.estimated_output_cost_usd,
             "estimated_total_cost_before_usd": self.estimated_total_cost_before_usd,
             "estimated_total_cost_after_usd": self.estimated_total_cost_after_usd,
+            "pinned_fact_count": self.pinned_fact_count,
         }
 
 

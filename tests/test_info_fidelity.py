@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from benchmarks.info_fidelity import critical_retention, extract_critical_spans
+from benchmarks.info_fidelity import critical_retention
+from contextpress.critical_spans import extract_critical_spans
 
 
 def test_extract_critical_spans_finds_ids_and_urls():

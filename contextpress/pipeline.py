@@ -32,6 +32,9 @@ CONTEXTPRESS BEHAVIOR CONTRACT
 15. Abbrev and alias never mutate system / JSON / tool turns. Alias only fires
     for phrases that repeat 3+ times in the conversation (chat/agent).
 16. On ``rag_doc``, filler does not rewrite the last user turn.
+17. On ``rag_doc`` ``medium`` / ``high``, critical spans dropped by trim, recency,
+    or long-turn sentence cuts are appended once on the trim stub or a compressed
+    turn (``Kept figures: …``, max 40 spans). Chat/agent runs do not pin.
 """
 
 from __future__ import annotations
@@ -41,9 +44,10 @@ import time
 import warnings
 from typing import TYPE_CHECKING, Any
 
-from contextpress.compression import STAGE_ORDER
+from contextpress.compression import STAGE_ORDER, normalize_compression_level
 from contextpress.models import Conversation, Turn, clone_conversation, clone_turn
 from contextpress.normalizer import extract_text_for_processing
+from contextpress.pinned_facts import apply_pinned_facts
 from contextpress.profiles import Profile, StageConfig
 from contextpress.registry import (
     build_custom_strategy,
@@ -86,8 +90,10 @@ class Pipeline:
         llm_max_summary_tokens: int = 2048,
         llm_mode: str = "replace_all",
         custom_stages: dict[str, StageConfig] | None = None,
+        compression_level: str = "medium",
     ):
         self.profile = profile
+        self.compression_level = normalize_compression_level(compression_level)
         self.token_budget = token_budget
         self.model = model
         self.llm_backend = llm_backend  # None = Tier 1 only
@@ -143,6 +149,17 @@ class Pipeline:
                 if token_delta != 0:
                     stats.token_delta_by_stage[stage_name] = token_delta
                 running_tokens = after_tokens
+
+        if (
+            not dry_run
+            and self.profile.name == "rag_doc"
+            and self.compression_level in ("medium", "high")
+        ):
+            result, pinned = apply_pinned_facts(conversation, result)
+            if stats is not None:
+                stats.pinned_fact_count = pinned
+                if pinned:
+                    running_tokens = token_counter.count_conversation(result)
 
         if self.llm_backend is not None and not dry_run:
             result = self._run_llm_tier(result, stats=stats)
