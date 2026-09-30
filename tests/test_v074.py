@@ -5,8 +5,7 @@ from __future__ import annotations
 from contextpress import ContextManager
 
 _QUESTION = (
-    "What is very quite specific in the part that begins "
-    "“The brass sextant showed a bearing”?"
+    "What is very quite specific in the part that begins " "“The brass sextant showed a bearing”?"
 )
 _ANCHOR = "The brass sextant showed a bearing of 214 degrees toward the island of Zephyra."
 _OFFTOPIC = "Warehouse clerks counted nutmeg crates beside tar barrels in the quiet loft."

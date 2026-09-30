@@ -14,9 +14,7 @@ def test_high_pins_year_from_dropped_offtopic_section() -> None:
         "role": "user",
         "content": "Warehouse clerks counted 1859 nutmeg crates beside tar barrels.",
     }
-    out = ContextManager(type="rag_doc", compression="high").compress(
-        messages, return_stats=True
-    )
+    out = ContextManager(type="rag_doc", compression="high").compress(messages, return_stats=True)
     body = "\n".join(str(m.get("content") or "") for m in out.messages)
     assert "1859" in body
     assert "Kept figures:" in body
@@ -32,9 +30,7 @@ def test_pin_not_duplicated_when_span_already_in_question() -> None:
         "role": "user",
         "content": "Warehouse clerks counted 1859 nutmeg crates beside tar barrels.",
     }
-    out = ContextManager(type="rag_doc", compression="high").compress(
-        messages, return_stats=True
-    )
+    out = ContextManager(type="rag_doc", compression="high").compress(messages, return_stats=True)
     body = out.messages[-1]["content"]
     assert body.count("1859") == 1
     assert out.stats.pinned_fact_count == 0
@@ -63,9 +59,7 @@ def test_pin_cap_at_forty() -> None:
     )
     out, count = apply_pinned_facts(original, compressed)
     assert count == 40
-    line = next(
-        str(t.content or "") for t in out.turns if "Kept figures:" in str(t.content or "")
-    )
+    line = next(str(t.content or "") for t in out.turns if "Kept figures:" in str(t.content or ""))
     assert line.count(";") == 39
 
 

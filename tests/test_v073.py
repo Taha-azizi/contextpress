@@ -61,9 +61,7 @@ def test_high_keeps_anchor_and_is_thinner_than_medium() -> None:
     medium = ContextManager(type="rag_doc", compression="medium").compress(
         messages, return_stats=True
     )
-    high = ContextManager(type="rag_doc", compression="high").compress(
-        messages, return_stats=True
-    )
+    high = ContextManager(type="rag_doc", compression="high").compress(messages, return_stats=True)
     assert "Zephyra" in high.messages[1]["content"]
     assert "nutmeg" not in high.messages[1]["content"]
     assert high.messages[-1]["content"] == _QUESTION
