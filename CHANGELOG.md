@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
 
+## [0.7.6] - 2026-09-30
+
+- **Pinned names** — on `rag_doc` `medium` and `high`, two-word names dropped by trim, recency, or a long-turn sentence cut are listed once on the same turn as the figure line (`Kept names: Ada Lovelace; …`, max **40**). A newline does not join the words. Names already in the output are not repeated. The figure cap stays **40**. Chat and agent are unchanged.
+- **Measured** — chunked 8k `high` names **44.7% → 89.6%**, save **61.5%**, numbers **95.6%**, anchor **95.2%**. Chunked 20k `high` names **33.3% → 73.2%**, save **79.3%**. Monolith 20k `high` names **2.1% → 45.8%**. Passage numbers are unchanged from 0.7.5.
+
 ## [0.7.5] - 2026-09-29
 
 - **Pinned figures** — on `rag_doc` `medium` and `high`, critical spans dropped by trim, recency, or long-turn sentence cuts are appended once on the trim stub or a compressed turn (`Kept figures: …`, max **40** spans). Same span classes as the fidelity benchmark (URLs, paths, 3+ digit numbers, dates, ids). Chat and agent runs are unchanged.
