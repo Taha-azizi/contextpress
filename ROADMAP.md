@@ -62,6 +62,7 @@ Same Tier-1 behavior as 0.6.14. The series is faster calls and better timing, no
 | **0.7.3** | `rag_doc` `medium`/`high` sentence-rank a pasted turn over 1,500 tokens. Monolith 8k `medium` **6.1% → 57.2%** save, anchor **100%**. Chunked 8k `medium` median stays **10.4%**. |
 | **0.7.4** | `rag_doc` keeps the question and the section it points at. Chunked 8k `high` anchor **69.5% → 95.5%**, save **62.8%**. Questions intact **204/204**. |
 | **0.7.5** | Pin critical spans dropped on `rag_doc` `medium`/`high` (`Kept figures: …`, max 40). Chunked 8k `high` numbers **49.2% → 95.6%**; 20k **42.0% → 94.1%**. Save/anchor gates hold. |
+| **0.7.6** | Pin two-word names on a separate line (`Kept names: …`, max 40). Chunked 8k `high` names **44.7% → 89.6%**; 20k **33.3% → 73.2%**. Figure cap stays 40. |
 
 Stay classical-NLP-first; keep optional LLM extras optional.
 

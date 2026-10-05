@@ -14,9 +14,9 @@ from __future__ import annotations
 import re
 from typing import Any
 
+from contextpress.namespans import extract_names
 from contextpress.strategies.filler import FILLER_PHRASES
 
-_NAME = re.compile(r"(?<![A-Za-z])[A-Z][a-z]+(?:[ \t]+[A-Z][a-z]+)+(?![A-Za-z])")
 _WS = re.compile(r"\s+")
 _WORD = re.compile(r"[A-Za-z']+")
 FILLER_TOKENS = frozenset(
@@ -26,7 +26,7 @@ FILLER_TOKENS = frozenset(
 
 def names(text: str) -> list[str]:
     """Two-word capitalized phrases. Newlines do not join the words."""
-    return list(dict.fromkeys(_WS.sub(" ", hit) for hit in _NAME.findall(text)))
+    return extract_names(text)
 
 
 def names_kept(name_list: list[str], body: str) -> int:

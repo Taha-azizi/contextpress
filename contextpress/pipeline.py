@@ -34,7 +34,8 @@ CONTEXTPRESS BEHAVIOR CONTRACT
 16. On ``rag_doc``, filler does not rewrite the last user turn.
 17. On ``rag_doc`` ``medium`` / ``high``, critical spans dropped by trim, recency,
     or long-turn sentence cuts are appended once on the trim stub or a compressed
-    turn (``Kept figures: …``, max 40 spans). Chat/agent runs do not pin.
+    turn (``Kept figures: …``, max 40 spans). Two-word names dropped the same way
+    go on a separate line (``Kept names: …``, max 40). Chat/agent runs do not pin.
 """
 
 from __future__ import annotations

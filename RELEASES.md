@@ -2,7 +2,7 @@
 
 Versions are **[SemVer](https://semver.org/)**. The canonical changelog is [`CHANGELOG.md`](CHANGELOG.md). This file is the GitHub-style narrative for maintainers cutting tags.
 
-**Current package version:** `0.7.5`
+**Current package version:** `0.7.6`
 
 Sources that must match before a PyPI upload (CI runs `python scripts/check_version.py`):
 
@@ -16,6 +16,25 @@ Sources that must match before a PyPI upload (CI runs `python scripts/check_vers
 | PyPI | `pip index versions contextpress` |
 
 Do not retag `main`/`dev` from a machine that has not verified the table above.
+
+---
+
+## 0.7.6 — 2026-09-30
+
+### Why this release
+
+0.7.5 pins numbers, URLs, paths, dates, and ids. It does not pin the two-word names the long-prose study counts. On chunked `high` those names were kept at **44.7%** (8k) and **33.3%** (20k). Putting them on the figure line would take slots away from numbers.
+
+### Changes
+
+- `rag_doc` `medium` / `high`: dropped two-word names are appended once, on the same turn as `Kept figures:`.
+- The line is `Kept names: Ada Lovelace; John Smith`. Cap **40**, separate from the figure cap.
+- A name already present in the output is not repeated. A newline does not form a name.
+- Chat and agent still do not pin.
+
+On the 12-work long-prose corpus, chunked 8k `high` name retention went from **44.7% to 89.6%** at **61.5%** mean save (numbers **95.6%**, anchor **95.2%**). Chunked 20k `high` names went from **33.3% to 73.2%** at **79.3%** save. Monolith 20k `high` names went from **2.1% to 45.8%**. Passage-number retention is the same as 0.7.5.
+
+Tag: `v0.7.6` (local until published)
 
 ---
 
