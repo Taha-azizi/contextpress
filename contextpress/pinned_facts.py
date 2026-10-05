@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import copy
+import re
 
 from contextpress.critical_spans import extract_critical_spans, span_present
 from contextpress.models import Conversation, Turn, clone_turn
@@ -11,8 +12,12 @@ from contextpress.normalizer import apply_text_to_turn, extract_text_for_process
 
 KEPT_FIGURES_LINE = "Kept figures:"
 KEPT_NAMES_LINE = "Kept names:"
-MAX_PINNED_SPANS = 40
+# Numbers are short. One shared cap of 40 filled up on a pasted chapter and
+# left later figures unpinned (0.7.7). URLs and identifiers stay tighter.
+MAX_PINNED_NUMBERS = 120
+MAX_PINNED_OTHER = 40
 MAX_PINNED_NAMES = 40
+_IS_NUMBER = re.compile(r"^(?:\d{4}-\d{2}-\d{2}|\d+\.\d+(?:\.\d+)*|\d{3,})$")
 
 
 def _non_system_text(conversation: Conversation) -> str:
@@ -48,18 +53,19 @@ def _pin_target_index(turns: list[Turn]) -> int | None:
     return None
 
 
-def _spans_to_pin(
-    original_text: str, compressed_text: str, *, limit: int = MAX_PINNED_SPANS
-) -> list[str]:
+def _spans_to_pin(original_text: str, compressed_text: str) -> list[str]:
     blob = compressed_text.casefold()
-    pins: list[str] = []
+    numbers: list[str] = []
+    others: list[str] = []
     for span in extract_critical_spans(original_text):
         if span_present(span, blob):
             continue
-        pins.append(span)
-        if len(pins) >= limit:
-            break
-    return pins
+        bucket = numbers if _IS_NUMBER.fullmatch(span) else others
+        cap = MAX_PINNED_NUMBERS if bucket is numbers else MAX_PINNED_OTHER
+        if len(bucket) >= cap:
+            continue
+        bucket.append(span)
+    return numbers + others
 
 
 def _names_to_pin(original_text: str, compressed_text: str) -> list[str]:

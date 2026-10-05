@@ -63,6 +63,7 @@ Same Tier-1 behavior as 0.6.14. The series is faster calls and better timing, no
 | **0.7.4** | `rag_doc` keeps the question and the section it points at. Chunked 8k `high` anchor **69.5% → 95.5%**, save **62.8%**. Questions intact **204/204**. |
 | **0.7.5** | Pin critical spans dropped on `rag_doc` `medium`/`high` (`Kept figures: …`, max 40). Chunked 8k `high` numbers **49.2% → 95.6%**; 20k **42.0% → 94.1%**. Save/anchor gates hold. |
 | **0.7.6** | Pin two-word names on a separate line (`Kept names: …`, max 40). Chunked 8k `high` names **44.7% → 89.6%**; 20k **33.3% → 73.2%**. Figure cap stays 40. |
+| **0.7.7** | Numbers, decimals, and ISO dates pin up to **120**. URLs, paths, and ids stay at **40**. Monolith 20k `high` numbers **84% → 100%**, save **98.0%**. Names stay at the 0.7.6 caps. |
 
 Stay classical-NLP-first; keep optional LLM extras optional.
 
@@ -131,7 +132,38 @@ as facts does not.
   222-item chat headline in the README stays, with a pointer at this study,
   until a later docs pass. Do not replace the chat numbers with these.
 
-### Explicitly not in 0.7.3–0.7.5
+## 0.7.7 — more room for numbers
+
+**Problem.** 0.7.5 and 0.7.6 share one cap of 40 across every critical span
+except names. A pasted chapter drops more than 40 numbers, so later figures
+never appear. After 0.7.6, monolith 20k `high` still keeps **84.0%** of
+passage numbers. Numbers are short tokens. URLs are not, and they were
+sharing that cap.
+
+**Behavior.**
+
+- `rag_doc` `medium` / `high` only. Same trigger as 0.7.5.
+- Numbers, decimals, and ISO dates: cap **120**, first-seen.
+- URLs, emails, paths, and identifiers: cap **40**, first-seen.
+- One line, numbers then the other spans: `Kept figures: 1859; 3.14; https://…`.
+- Names stay on `Kept names:` with their own cap of **40**.
+- `pinned_fact_count` is figures plus names.
+
+**Tests.**
+
+- 50 dropped numbers are all pinned.
+- 130 dropped numbers pin 120.
+- 50 dropped URLs pin 40.
+- The 0.7.6 name cap of 40 is unchanged.
+- `chat` still has no kept-figures line.
+
+**Release gate.** Re-run `python -m benchmarks.run_longform`.
+
+- Monolith 20k `high` numbers: **84.0% → at least 92%**. Mean save **at least 95%**.
+- Chunked 8k `high` numbers stay at least **94%**, mean save at least **55%**.
+- Chunked 8k `high` names stay at least **80%** (0.7.6 was 89.6%). Anchor stays at least **95%**.
+
+### Explicitly not in 0.7.3–0.7.7
 
 - No LLM-as-judge, no new model dependency, no required network in `pytest`.
 - No change to chat/agent preset membership.

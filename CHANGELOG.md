@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
 
+## [0.7.7] - 2026-10-04
+
+- **Figure pins** — on `rag_doc` `medium` / `high`, dropped numbers, decimals, and ISO dates pin up to **120**. URLs, emails, paths, and identifiers stay capped at **40**. One `Kept figures:` line, numbers first. The name line from 0.7.6 stays capped at **40**. Chat and agent are unchanged.
+- **Measured** — monolith 20k `high` passage numbers **84.0% → 100%**, mean save **98.0%**. Chunked 8k `high`: numbers **100%**, names **89.6%**, save **61.4%**, anchor **95.2%**. Chunked 20k `high`: numbers **100%**, names **73.2%**, save **79.3%**.
+
 ## [0.7.6] - 2026-09-30
 
 - **Pinned names** — on `rag_doc` `medium` and `high`, two-word names dropped by trim, recency, or a long-turn sentence cut are listed once on the same turn as the figure line (`Kept names: Ada Lovelace; …`, max **40**). A newline does not join the words. Names already in the output are not repeated. The figure cap stays **40**. Chat and agent are unchanged.

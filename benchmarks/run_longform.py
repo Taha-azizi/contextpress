@@ -490,8 +490,8 @@ def _findings(rows: list[dict[str, Any]]) -> list[str]:
         f"`high` **{_fmt(mono8h['mean_save'], '%')}**. "
         f"Monolith 20k `high` is **{_fmt(mono20h['mean_save'], '%')}** save",
         f"  with anchor {_fmt(mono20h['mean_anchor'], '%')}. "
-        f"`high` keeps a two-sentence lead plus matches, so passage numbers",
-        f"  fall to {_fmt(mono20h['mean_numbers'], '%')} at 20k.",
+        "`high` keeps a two-sentence lead plus matches. Passage numbers",
+        f"  are {_fmt(mono20h['mean_numbers'], '%')} at 20k.",
         "- **Chunk the passage and `medium` starts to move, with a wide spread.**",
         "  Quote the median: chunked `medium` is "
         f"**{_fmt(ch2m['median_save'], '%')}** / "
@@ -503,7 +503,7 @@ def _findings(rows: list[dict[str, Any]]) -> list[str]:
         f"sd {_fmt(ch20m['sd_save'])} at 20k). A few works where the question",
         "  misses most sections pull the mean up. Anchor words stay high "
         f"({_fmt(ch20m['mean_anchor'], '%')} at 20k). Whole-passage numbers",
-        f"  fall to {_fmt(ch20m['mean_numbers'], '%')} because off-query",
+        f"  are {_fmt(ch20m['mean_numbers'], '%')} after off-query",
         "  sections are shortened.",
         "- **`low` is filler, not summarization.**",
         f"  Chunked 8k `low` mean save is **{_fmt(ch8l['mean_save'], '%')}**",

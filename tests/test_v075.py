@@ -36,7 +36,7 @@ def test_pin_not_duplicated_when_span_already_in_question() -> None:
     assert out.stats.pinned_fact_count == 0
 
 
-def test_pin_cap_at_forty() -> None:
+def test_fifty_dropped_numbers_are_all_pinned() -> None:
     dropped = " ".join(str(1000 + i) for i in range(50))
     original = Conversation(
         type="rag_doc",
@@ -58,9 +58,10 @@ def test_pin_cap_at_forty() -> None:
         ],
     )
     out, count = apply_pinned_facts(original, compressed)
-    assert count == 40
+    assert count == 50
     line = next(str(t.content or "") for t in out.turns if "Kept figures:" in str(t.content or ""))
-    assert line.count(";") == 39
+    assert "1049" in line
+    assert line.count(";") == 49
 
 
 def test_chat_compression_has_no_kept_figures_line() -> None:

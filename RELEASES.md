@@ -2,7 +2,7 @@
 
 Versions are **[SemVer](https://semver.org/)**. The canonical changelog is [`CHANGELOG.md`](CHANGELOG.md). This file is the GitHub-style narrative for maintainers cutting tags.
 
-**Current package version:** `0.7.6`
+**Current package version:** `0.7.7`
 
 Sources that must match before a PyPI upload (CI runs `python scripts/check_version.py`):
 
@@ -16,6 +16,25 @@ Sources that must match before a PyPI upload (CI runs `python scripts/check_vers
 | PyPI | `pip index versions contextpress` |
 
 Do not retag `main`/`dev` from a machine that has not verified the table above.
+
+---
+
+## 0.7.7 — 2026-10-04
+
+### Why this release
+
+0.7.6 pins names on their own line, but every other critical span still shares one cap of 40. A pasted chapter drops more than 40 numbers, so the rest never appear. Numbers are short. URLs are not.
+
+### Changes
+
+- `rag_doc` `medium` / `high`: numbers, decimals, and ISO dates pin up to **120**. URLs, emails, paths, and identifiers stay at **40**.
+- One `Kept figures:` line. Numbers come first.
+- `Kept names:` stays capped at **40**.
+- Chat and agent still do not pin.
+
+On the 12-work long-prose corpus, monolith 20k `high` passage numbers went from **84.0% to 100%** and mean save stayed **98.0%**. Chunked 8k `high` numbers are **100%** at **61.4%** save (names **89.6%**, anchor **95.2%**). Chunked 20k `high` numbers are **100%** at **79.3%** save (names **73.2%**).
+
+Tag: `v0.7.7` (local until published)
 
 ---
 

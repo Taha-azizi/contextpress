@@ -10,6 +10,7 @@
 - **Tier 1, no API key** — `ContextManager` runs deterministic NLP stages (structure, filler, repetition, recency, budget, …). Optional **Tier 2** via `llm_backend=` when you want semantic dedupe/summarize.
 - **`chat` · `rag_doc` · `agent`** — profiles tune filler, resolution, recency, and tool-turn handling for dialogue, RAG chunks, and agent threads.
 - **Measured tradeoffs** — **222** local workloads, mostly chat ([method](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/INFO_FIDELITY.md)): `low` **6.0%** token save / **1.6%** critical-fact loss; `medium` **22.7%** / **15.2%**; `high` **47.7%** / **27.3%** (weighted critical loss). Long prose is a separate study ([`benchmarks/LONGFORM.md`](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/LONGFORM.md)): a pasted 8k chapter saves **6.1%** on `low` and **57.2%** on `medium` (anchor words **100%**). Chunked 8k `high` saves **62.8%** and keeps **95.5%** of the asked sentence. The question turn is byte-identical in **204/204** runs.
+- **0.7.7 raises the number pin cap** — on `rag_doc` `medium`/`high`, dropped numbers pin up to **120**. URLs and ids stay at **40**. Names stay on their own line, capped at **40**.
 - **0.7.6 pins dropped names** — on `rag_doc` `medium`/`high`, a two-word name removed by trim or a sentence cut is listed once (`Kept names: …`, max 40), separate from the figure line.
 - **0.7.5 pins dropped figures** — on `rag_doc` `medium`/`high`, numbers and other critical spans removed by trim or sentence cuts are listed once (`Kept figures: …`, max 40). Chunked 8k `high`: **62.4%** save, **95.6%** passage numbers, **95.2%** anchor words ([study](https://github.com/Taha-azizi/contextpress/blob/dev/benchmarks/LONGFORM.md)).
 - **0.7.4 keeps the asked section** — on `rag_doc`, the question is not rewritten, and `high` keeps the section that matches it.
@@ -455,7 +456,7 @@ Long chat histories inflate token usage, bury important facts (lost-in-the-middl
 
 ## Project status
 
-> **Actively stabilizing.** **0.6.x and 0.7.x are stable for Tier 1** (deterministic, offline NLP — no LLM required). Current release: **0.7.6** (`rag_doc` pins dropped two-word names, cap 40).
+> **Actively stabilizing.** **0.6.x and 0.7.x are stable for Tier 1** (deterministic, offline NLP — no LLM required). Current release: **0.7.7** (`rag_doc` pins up to 120 dropped numbers; other figures stay capped at 40).
 >
 > - Tier 1 (`low` / `medium` / `high`) is the supported product surface. Behavior is covered by tests; numbers above come from the current fidelity corpus.
 > - **0.7.x** is performance and measurement (`elapsed_ms` on stats), not new compression stages.
