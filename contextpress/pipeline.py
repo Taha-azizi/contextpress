@@ -36,7 +36,7 @@ CONTEXTPRESS BEHAVIOR CONTRACT
     or long-turn sentence cuts are appended once on the trim stub or a compressed
     turn (``Kept figures: …``). Numbers, decimals, and ISO dates cap at 120.
     URLs, emails, paths, and identifiers cap at 40. Two-word names go on a
-    separate line (``Kept names: …``, max 40). Chat/agent runs do not pin.
+    separate line (``Kept names: …``, max 160). Chat/agent runs do not pin.
 """
 
 from __future__ import annotations

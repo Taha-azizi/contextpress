@@ -64,6 +64,7 @@ Same Tier-1 behavior as 0.6.14. The series is faster calls and better timing, no
 | **0.7.5** | Pin critical spans dropped on `rag_doc` `medium`/`high` (`Kept figures: …`, max 40). Chunked 8k `high` numbers **49.2% → 95.6%**; 20k **42.0% → 94.1%**. Save/anchor gates hold. |
 | **0.7.6** | Pin two-word names on a separate line (`Kept names: …`, max 40). Chunked 8k `high` names **44.7% → 89.6%**; 20k **33.3% → 73.2%**. Figure cap stays 40. |
 | **0.7.7** | Numbers, decimals, and ISO dates pin up to **120**. URLs, paths, and ids stay at **40**. Monolith 20k `high` numbers **84% → 100%**, save **98.0%**. Names stay at the 0.7.6 caps. |
+| **0.7.8** | Name cap **40 → 160**. Monolith 20k `high` names **45.8% → 90.2%** (save **97.2%**). Chunked 20k `high` names **73.2% → 100%**. |
 
 Stay classical-NLP-first; keep optional LLM extras optional.
 
@@ -163,7 +164,47 @@ sharing that cap.
 - Chunked 8k `high` numbers stay at least **94%**, mean save at least **55%**.
 - Chunked 8k `high` names stay at least **80%** (0.7.6 was 89.6%). Anchor stays at least **95%**.
 
-### Explicitly not in 0.7.3–0.7.7
+## 0.7.8 — raise the name cap, not the sort order
+
+**Why reordering is the wrong cut.** The earlier sketch said: when a cap
+fills, keep spans from the turn that best matches the question. After 0.7.7
+that does not move the published table. Passage numbers are already **100%**
+on chunked and monolith `high` at 8k and 20k, so ranking the number list
+changes nothing. Name retention is pooled across every two-word name in the
+passage, not only names in the asked section. Swapping which 40 names are
+pinned leaves that percentage about where it is.
+
+**Where the loss actually is.** On 20k `high`, five of ten works already sit
+on the 40-name cap (Austen, Moby-Dick, Machiavelli, French Revolution, Roman
+Empire). The other five pin fewer than 40 names and keep **100%**. Missing
+names are **203** on chunked 20k and **410** on monolith 20k, almost all in
+those five works. French Revolution alone has **235** names and keeps **47**
+on a pasted chapter.
+
+**Behavior.**
+
+- `rag_doc` `medium` / `high` only. Same line: `Kept names: …`.
+- Cap **160**, first-seen. Number cap stays **120**. Other spans stay **40**.
+- A name already in the output is still not repeated.
+- Chat and agent still do not pin.
+
+160 covers every 20k work in this corpus except the tail of the French
+Revolution page. Pinning every capitalized pair with no cap would spend the
+savings on titles and sentence-start pairs the regex also calls names.
+
+**Tests.**
+
+- 50 dropped names are all pinned.
+- 170 dropped names pin 160.
+- `chat` still has no kept-names line.
+
+**Release gate.**
+
+- Monolith 20k `high` names: **45.8% → at least 80%**. Mean save **at least 95%**.
+- Chunked 20k `high` names: **73.2% → at least 90%**. Mean save **at least 70%**.
+- Chunked 8k `high` names stay at least **89%**, numbers **100%**, anchor at least **95%**.
+
+### Explicitly not in 0.7.3–0.7.8
 
 - No LLM-as-judge, no new model dependency, no required network in `pytest`.
 - No change to chat/agent preset membership.

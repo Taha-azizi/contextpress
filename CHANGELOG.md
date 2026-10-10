@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 Narrative release notes (including **0.6.13**): [`RELEASES.md`](RELEASES.md).
 
+## [0.7.8] - 2026-10-10
+
+- **Pinned names** — on `rag_doc` `medium` / `high`, the `Kept names:` cap rises from **40** to **160**. Order stays first-seen. Number and URL caps are unchanged. Chat and agent are unchanged.
+- **Measured** — monolith 20k `high` names **45.8% → 90.2%**, save **97.2%**. Chunked 20k `high` names **73.2% → 100%**, save **78.9%**, info loss **18.6% → 0.3%**. Chunked 8k `high` names **100%**, numbers **100%**, anchor **95.2%**, save **61.2%**.
+- **Why not a relevance sort** — passage numbers are already fully pinned, and the name score counts every name in the passage. Reordering the same 40 pins would not raise that score. The misses sit on five name-dense works that already fill the old cap.
+
 ## [0.7.7] - 2026-10-04
 
 - **Figure pins** — on `rag_doc` `medium` / `high`, dropped numbers, decimals, and ISO dates pin up to **120**. URLs, emails, paths, and identifiers stay capped at **40**. One `Kept figures:` line, numbers first. The name line from 0.7.6 stays capped at **40**. Chat and agent are unchanged.

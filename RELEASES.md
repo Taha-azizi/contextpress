@@ -2,7 +2,7 @@
 
 Versions are **[SemVer](https://semver.org/)**. The canonical changelog is [`CHANGELOG.md`](CHANGELOG.md). This file is the GitHub-style narrative for maintainers cutting tags.
 
-**Current package version:** `0.7.7`
+**Current package version:** `0.7.8`
 
 Sources that must match before a PyPI upload (CI runs `python scripts/check_version.py`):
 
@@ -16,6 +16,24 @@ Sources that must match before a PyPI upload (CI runs `python scripts/check_vers
 | PyPI | `pip index versions contextpress` |
 
 Do not retag `main`/`dev` from a machine that has not verified the table above.
+
+---
+
+## 0.7.8 — 2026-10-10
+
+### Why this release
+
+Sorting pins toward the question was the leftover idea after 0.7.7. It is the wrong next cut. Numbers on `high` are already **100%** at 8k and 20k. Name loss is a full cap of 40 on the name-dense works, and the benchmark counts every name in the passage, so a different set of 40 names does not raise the score.
+
+### Changes
+
+- `rag_doc` `medium` / `high`: `Kept names:` cap is **160**, still first-seen.
+- Number cap stays **120**. URLs, paths, and ids stay at **40**.
+- Chat and agent still do not pin.
+
+On the 12-work long-prose corpus, monolith 20k `high` names went from **45.8% to 90.2%** at **97.2%** mean save. Chunked 20k `high` names went from **73.2% to 100%** at **78.9%** save, and information loss fell from **18.6% to 0.3%**. Chunked 8k `high` names and numbers are **100%** at **61.2%** save (anchor **95.2%**).
+
+Tag: `v0.7.8` (local until published)
 
 ---
 

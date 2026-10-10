@@ -36,7 +36,7 @@ def test_name_already_in_the_question_is_not_repeated() -> None:
     assert "Kept names:" not in body
 
 
-def test_name_cap_at_forty() -> None:
+def test_fifty_dropped_names_are_all_pinned() -> None:
     dropped = "\n".join(f"Ann {chr(65 + (i // 26))}{chr(97 + (i % 26))}a" for i in range(50))
     original = Conversation(
         type="rag_doc",
@@ -58,9 +58,9 @@ def test_name_cap_at_forty() -> None:
         ],
     )
     out, count = apply_pinned_facts(original, compressed)
-    assert count == 40
+    assert count == 50
     line = next(str(t.content or "") for t in out.turns if "Kept names:" in str(t.content or ""))
-    assert line.count(";") == 39
+    assert line.count(";") == 49
 
 
 def test_chat_compression_has_no_kept_names_line() -> None:

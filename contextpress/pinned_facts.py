@@ -16,7 +16,9 @@ KEPT_NAMES_LINE = "Kept names:"
 # left later figures unpinned (0.7.7). URLs and identifiers stay tighter.
 MAX_PINNED_NUMBERS = 120
 MAX_PINNED_OTHER = 40
-MAX_PINNED_NAMES = 40
+# 0.7.6 capped names at 40. On 20k `high` that cap is full for the name-dense
+# works and unused for the rest, so later names never appear (0.7.8).
+MAX_PINNED_NAMES = 160
 _IS_NUMBER = re.compile(r"^(?:\d{4}-\d{2}-\d{2}|\d+\.\d+(?:\.\d+)*|\d{3,})$")
 
 
